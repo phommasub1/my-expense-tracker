@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="th" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -18,7 +18,7 @@
     <!-- Tesseract OCR -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
     <!-- Google Fonts (Kanit & Mitr) -->
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&family=Mitr:wght@300;400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Mitr:wght@300;400;500;600&display=swap" rel="stylesheet">
 
     <script>
         tailwind.config = {
@@ -68,6 +68,17 @@
         .blur-amount { filter: blur(8px); transition: filter 0.2s ease; }
         .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
         .pt-safe { padding-top: env(safe-area-inset-top, 20px); }
+        
+        /* Modal Animation */
+        .modal-animate {
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+        /* Custom Native Input Styling for Dark Theme */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            opacity: 0.7;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body class="dark bg-darkBg min-h-screen text-slate-100 flex flex-col justify-between overflow-x-hidden antialiased">
@@ -78,13 +89,13 @@
             <i class="fa-solid fa-lock"></i>
         </div>
         <h2 class="text-2xl font-bold font-mitr mb-2 bg-clip-text text-transparent bg-gradient-to-r from-neonCyan to-neonPurple">ยินดีต้อนรับกลับมา</h2>
-        <p class="text-slate-400 text-sm mb-6">กรุณาใส่รหัส PIN เพื่อเข้าใช้งาน</p>
+        <p class="text-slate-400 text-sm mb-6">กรุณาใส่รหัส PIN เพื่อเข้าใช้งาน (เริ่มต้น: 1234)</p>
         
         <div class="flex gap-4 mb-8">
-            <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-600"></div>
-            <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-600"></div>
-            <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-600"></div>
-            <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-600"></div>
+            <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-600 transition-all"></div>
+            <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-600 transition-all"></div>
+            <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-600 transition-all"></div>
+            <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-600 transition-all"></div>
         </div>
 
         <div class="grid grid-cols-3 gap-6 w-64 text-center">
@@ -119,10 +130,10 @@
             </div>
         </div>
         <div class="flex items-center gap-2">
-            <button onclick="togglePrivacyMode()" class="w-9 h-9 rounded-full glass-card flex items-center justify-center text-slate-300 hover:text-white active:scale-90 transition">
+            <button onclick="togglePrivacyMode()" class="w-9 h-9 rounded-full glass-card flex items-center justify-center text-slate-300 hover:text-white active:scale-90 transition" title="ซ่อน/แสดง ยอดเงิน">
                 <i id="privacyIcon" class="fa-solid fa-eye"></i>
             </button>
-            <button onclick="openSettingsModal()" class="w-9 h-9 rounded-full glass-card flex items-center justify-center text-slate-300 hover:text-white active:scale-90 transition">
+            <button onclick="openSettingsModal()" class="w-9 h-9 rounded-full glass-card flex items-center justify-center text-slate-300 hover:text-white active:scale-90 transition" title="ตั้งค่า">
                 <i class="fa-solid fa-gear"></i>
             </button>
         </div>
@@ -171,7 +182,7 @@
             <div class="glass-card rounded-2xl p-4 space-y-2 border border-slate-700/40">
                 <div class="flex justify-between items-center text-xs">
                     <span class="font-bold flex items-center gap-1.5"><i class="fa-solid fa-bullseye text-neonYellow"></i> งบประมาณเดือนนี้</span>
-                    <span id="budgetText" class="text-slate-400 text-[11px]">฿0 / ฿0</span>
+                    <span id="budgetText" class="text-slate-400 text-[11px] privacy-target">฿0 / ฿0</span>
                 </div>
                 <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
                     <div id="budgetProgressBar" class="bg-neonGreen h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
@@ -193,7 +204,7 @@
             <div class="space-y-3">
                 <div class="flex justify-between items-center">
                     <h3 class="text-sm font-bold font-mitr text-slate-300 flex items-center gap-1.5">
-                        <i class="fa-solid fa-clock-rotate-left text-neonPurple"></i> ประวัติรายการย้อนหลัง
+                        <i class="fa-solid fa-clock-rotate-left text-neonPurple"></i> ประวัติรายการล่าสุด
                     </h3>
                     <button onclick="openAddTransactionModal('backdate')" class="text-xs text-neonCyan hover:underline flex items-center gap-1">
                         <i class="fa-regular fa-calendar-plus"></i> บันทึกย้อนหลัง
@@ -257,7 +268,7 @@
             </div>
 
             <!-- Insights Toggle Button -->
-            <button onclick="toggleInsightsModal()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-neonPurple to-neonCyan text-white font-bold text-xs shadow-lg neon-glow-purple flex items-center justify-center gap-2">
+            <button onclick="openInsightsModal()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-neonPurple to-neonCyan text-white font-bold text-xs shadow-lg neon-glow-purple flex items-center justify-center gap-2 active:scale-95 transition">
                 <i class="fa-solid fa-chart-line"></i> เข้าสู่โหมด Insights สรุปสถิติรายปี
             </button>
         </section>
@@ -328,7 +339,7 @@
                     <i class="fa-solid fa-file-invoice-dollar text-neonCyan text-xl"></i>
                     <div>
                         <p class="text-xs font-bold text-slate-200">สแกนสลิปโอนเงิน (OCR)</p>
-                        <p class="text-[10px] text-slate-400">ดึงยอดเงินและวันที่อัตโนมัติ</p>
+                        <p id="ocrStatusText" class="text-[10px] text-slate-400">ดึงยอดเงินและวันที่อัตโนมัติ</p>
                     </div>
                 </div>
                 <label class="px-3 py-1.5 rounded-xl bg-neonCyan/20 text-neonCyan border border-neonCyan/40 text-xs font-bold cursor-pointer hover:bg-neonCyan/30 active:scale-95 transition">
@@ -339,7 +350,7 @@
 
             <!-- Date Picker -->
             <div>
-                <label class="text-[11px] text-slate-400 mb-1 block">วันที่บันทึก</label>
+                <label class="text-[11px] text-slate-400 mb-1 block">วันที่บันทึก (เลือกย้อนหลังได้)</label>
                 <input type="date" id="txDate" class="w-full bg-darkBg border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-neonPurple">
             </div>
 
@@ -347,7 +358,7 @@
             <div class="space-y-3">
                 <div>
                     <label class="text-[11px] text-slate-400 mb-1 block">จำนวนเงิน (บาท)</label>
-                    <input type="number" id="txAmount" placeholder="0.00" class="w-full bg-darkBg border border-slate-700 rounded-xl p-3 text-lg font-bold text-neonCyan focus:outline-none focus:border-neonCyan">
+                    <input type="number" step="0.01" id="txAmount" placeholder="0.00" class="w-full bg-darkBg border border-slate-700 rounded-xl p-3 text-lg font-bold text-neonCyan focus:outline-none focus:border-neonCyan">
                 </div>
                 <div>
                     <label class="text-[11px] text-slate-400 mb-1 block">ชื่อรายการ</label>
@@ -439,7 +450,7 @@
                 </div>
                 <div>
                     <label class="text-[11px] text-slate-400 mb-1 block">จำนวนเงิน (บาท)</label>
-                    <input type="number" id="loanAmount" placeholder="0.00" class="w-full bg-darkBg border border-slate-700 rounded-xl p-2.5 text-xs font-bold text-neonCyan focus:outline-none focus:border-neonPurple">
+                    <input type="number" step="0.01" id="loanAmount" placeholder="0.00" class="w-full bg-darkBg border border-slate-700 rounded-xl p-2.5 text-xs font-bold text-neonCyan focus:outline-none focus:border-neonPurple">
                 </div>
             </div>
 
@@ -455,6 +466,15 @@
             <div class="flex justify-between items-center border-b border-slate-800 pb-3">
                 <h3 class="font-bold text-base font-mitr text-slate-200">ตั้งค่า & สำรองข้อมูล</h3>
                 <button onclick="closeModal('settingsModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <!-- Change PIN Section -->
+            <div class="p-3 rounded-2xl bg-darkBg border border-slate-800 space-y-2">
+                <p class="text-xs font-bold text-slate-300">ตั้งรหัส PIN ใหม่ (4 หลัก)</p>
+                <div class="flex gap-2">
+                    <input type="password" maxlength="4" id="newPinInput" placeholder="1234" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-slate-200 text-center tracking-widest">
+                    <button onclick="saveNewPin()" class="px-3 py-2 bg-neonPurple text-white text-xs font-bold rounded-xl">เปลี่ยน PIN</button>
+                </div>
             </div>
 
             <!-- Set Monthly Budget Section -->
@@ -499,124 +519,139 @@
         </div>
     </div>
 
-    <!-- JAVASCRIPT APP LOGIC -->
+    <!-- MODAL: ADD CUSTOM CATEGORY -->
+    <div id="addCategoryModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center hidden">
+        <div class="glass-card w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-3 border border-slate-700">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                <h3 class="font-bold text-base font-mitr text-slate-200">เพิ่มหมวดหมู่ใหม่</h3>
+                <button onclick="closeModal('addCategoryModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <input type="text" id="newCatName" placeholder="ชื่อหมวดหมู่ (เช่น ค่าสัตว์เลี้ยง)" class="w-full bg-darkBg border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200">
+            <div>
+                <label class="text-[10px] text-slate-400 block mb-1">เลือกสีประจำหมวดหมู่</label>
+                <input type="color" id="newCatColor" value="#00F0FF" class="w-full h-10 bg-darkBg border border-slate-700 rounded-xl cursor-pointer">
+            </div>
+            <button onclick="saveCustomCategory()" class="w-full py-2.5 rounded-xl bg-neonCyan text-black font-bold text-xs shadow active:scale-95 transition">บันทึกหมวดหมู่</button>
+        </div>
+    </div>
+
     <script>
-        // Default Categories
+        // Default Data & State
         const defaultExpenseCategories = [
             { id: 'exp1', name: 'อาหาร & เครื่องดื่ม', icon: 'fa-utensils', color: '#FF2E93' },
-            { id: 'exp2', name: 'การเดินทาง', icon: 'fa-car', color: '#A855F7' },
-            { id: 'exp3', name: 'ช้อปปิ้ง', icon: 'fa-bag-shopping', color: '#00F0FF' },
-            { id: 'exp4', name: 'บ้าน', icon: 'fa-house-chimney', color: '#10B981' },
-            { id: 'exp5', name: 'ค่าสาธารณูปโภค', icon: 'fa-bolt', color: '#F59E0B' },
-            { id: 'exp6', name: 'สุขภาพ', icon: 'fa-heart-pulse', color: '#EF4444' },
-            { id: 'exp7', name: 'ประกัน', icon: 'fa-shield-halved', color: '#3B82F6' },
-            { id: 'exp8', name: 'ความบันเทิง', icon: 'fa-gamepad', color: '#EC4899' },
-            { id: 'exp9', name: 'ความงาม', icon: 'fa-wand-magic-sparkles', color: '#F472B6' },
-            { id: 'exp10', name: 'การศึกษา', icon: 'fa-graduation-cap', color: '#6366F1' },
-            { id: 'exp11', name: 'ทำบุญ', icon: 'fa-hand-holding-heart', color: '#F97316' },
-            { id: 'exp12', name: 'รายจ่ายอื่นๆ', icon: 'fa-ellipsis', color: '#64748B' }
+            { id: 'exp2', name: 'การเดินทาง', icon: 'fa-bus', color: '#00F0FF' },
+            { id: 'exp3', name: 'ช้อปปิ้ง', icon: 'fa-bag-shopping', color: '#A855F7' },
+            { id: 'exp4', name: 'ความบันเทิง', icon: 'fa-gamepad', color: '#F59E0B' },
+            { id: 'exp5', name: 'ค่าใช้จ่ายบ้าน', icon: 'fa-house', color: '#10B981' },
+            { id: 'exp6', name: 'สุขภาพ', icon: 'fa-heart-pulse', color: '#EF4444' }
         ];
 
         const defaultIncomeCategories = [
             { id: 'inc1', name: 'เงินเดือน', icon: 'fa-money-bill-wave', color: '#10B981' },
-            { id: 'inc2', name: 'โบนัส', icon: 'fa-gift', color: '#F59E0B' },
-            { id: 'inc3', name: 'ฟรีแลนซ์', icon: 'fa-laptop-code', color: '#00F0FF' },
-            { id: 'inc4', name: 'รับของขวัญ', icon: 'fa-box-open', color: '#EC4899' },
-            { id: 'inc5', name: 'ขายของ', icon: 'fa-store', color: '#A855F7' },
-            { id: 'inc6', name: 'รายรับอื่นๆ', icon: 'fa-coins', color: '#64748B' }
+            { id: 'inc2', name: 'ธุรกิจส่วนตัว', icon: 'fa-briefcase', color: '#00F0FF' },
+            { id: 'inc3', name: 'การลงทุน', icon: 'fa-chart-line', color: '#A855F7' },
+            { id: 'inc4', name: 'รายรับอื่นๆ', icon: 'fa-coins', color: '#F59E0B' }
         ];
 
-        // State Management
-        let appData = {
-            transactions: [],
-            loans: [],
-            bills: [],
-            expenseCategories: [...defaultExpenseCategories],
-            incomeCategories: [...defaultIncomeCategories],
-            pinCode: '1234',
-            monthlyBudget: 15000
+        let state = {
+            transactions: JSON.parse(localStorage.getItem('expense_app_transactions')) || [],
+            categories: JSON.parse(localStorage.getItem('expense_app_categories')) || [...defaultExpenseCategories, ...defaultIncomeCategories],
+            bills: JSON.parse(localStorage.getItem('expense_app_bills')) || [],
+            loans: JSON.parse(localStorage.getItem('expense_app_loans')) || [],
+            budget: parseFloat(localStorage.getItem('expense_app_budget')) || 15000,
+            pin: localStorage.getItem('expense_app_pin') || '1234',
+            privacyMode: false,
+            currentPinInput: '',
+            selectedType: 'expense',
+            selectedCategory: null,
+            loanType: 'lent'
         };
 
-        let currentTxType = 'expense';
-        let currentSelectedCategory = null;
-        let isPrivacyMode = false;
-        let enteredPin = '';
-        let categoryChartInstance = null;
+        // Chart Instances
+        let doughnutChartInstance = null;
         let barChartInstance = null;
 
-        // Initialization
-        window.addEventListener('DOMContentLoaded', () => {
-            loadFromLocalStorage();
-            initCurrentYear();
-            populateMonthYearDropdowns();
-            renderHome();
-            checkRecurringBills();
-            setTodayDateInput();
-        });
+        // Thai Month Names
+        const thaiMonths = [
+            'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+            'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+        ];
 
-        function loadFromLocalStorage() {
-            const saved = localStorage.getItem('cute_expense_data');
-            if (saved) {
-                try {
-                    appData = { ...appData, ...JSON.parse(saved) };
-                } catch(e) { console.error(e); }
-            }
-        }
-
-        function saveData() {
-            localStorage.setItem('cute_expense_data', JSON.stringify(appData));
-        }
-
-        function initCurrentYear() {
-            const y = new Date().getFullYear();
-            document.getElementById('currentYearDisplay').innerText = y;
-        }
-
-        function setTodayDateInput() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('txDate').value = today;
-        }
-
-        // Lock & PIN Screen
-        function pressPin(num) {
-            if (enteredPin.length < 4) {
-                enteredPin += num;
+        // PIN & Lock System
+        function pressPin(digit) {
+            if (state.currentPinInput.length < 4) {
+                state.currentPinInput += digit;
                 updatePinDots();
-                if (enteredPin.length === 4) {
-                    setTimeout(() => {
-                        if (enteredPin === appData.pinCode || appData.pinCode === '') {
-                            document.getElementById('lockScreen').classList.add('hidden');
-                        } else {
-                            alert('รหัส PIN ไม่ถูกต้อง (ค่าเริ่มต้นคือ 1234)');
-                        }
-                        enteredPin = '';
-                        updatePinDots();
-                    }, 200);
+                if (state.currentPinInput.length === 4) {
+                    setTimeout(verifyPin, 150);
                 }
             }
         }
 
         function clearPin() {
-            enteredPin = '';
+            state.currentPinInput = '';
             updatePinDots();
         }
 
         function updatePinDots() {
             const dots = document.querySelectorAll('.pin-dot');
-            dots.forEach((dot, idx) => {
-                if (idx < enteredPin.length) {
-                    dot.classList.add('bg-neonCyan', 'border-neonCyan');
+            dots.forEach((dot, index) => {
+                if (index < state.currentPinInput.length) {
+                    dot.classList.add('bg-neonPink', 'border-neonPink');
                 } else {
-                    dot.classList.remove('bg-neonCyan', 'border-neonCyan');
+                    dot.classList.remove('bg-neonPink', 'border-neonPink');
                 }
             });
         }
 
-        function triggerFaceID() {
-            document.getElementById('lockScreen').classList.add('hidden');
+        function verifyPin() {
+            if (state.currentPinInput === state.pin) {
+                document.getElementById('lockScreen').classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => {
+                    document.getElementById('lockScreen').classList.add('hidden');
+                }, 300);
+            } else {
+                alert('รหัส PIN ไม่ถูกต้อง!');
+                clearPin();
+            }
         }
 
-        // Navigation
+        function triggerFaceID() {
+            alert('กำลังยืนยันตัวตนด้วย Face ID...');
+            document.getElementById('lockScreen').classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                document.getElementById('lockScreen').classList.add('hidden');
+            }, 300);
+        }
+
+        function saveNewPin() {
+            const val = document.getElementById('newPinInput').value.trim();
+            if (val.length === 4 && !isNaN(val)) {
+                state.pin = val;
+                localStorage.setItem('expense_app_pin', val);
+                alert('เปลี่ยนรหัส PIN เรียบร้อยแล้ว!');
+                document.getElementById('newPinInput').value = '';
+            } else {
+                alert('กรุณากรอกรหัส PIN เป็นตัวเลข 4 หลัก');
+            }
+        }
+
+        // Privacy Mode Toggle
+        function togglePrivacyMode() {
+            state.privacyMode = !state.privacyMode;
+            const icon = document.getElementById('privacyIcon');
+            const targets = document.querySelectorAll('.privacy-target');
+            
+            if (state.privacyMode) {
+                icon.className = 'fa-solid fa-eye-slash text-neonPink';
+                targets.forEach(el => el.classList.add('blur-amount'));
+            } else {
+                icon.className = 'fa-solid fa-eye';
+                targets.forEach(el => el.classList.remove('blur-amount'));
+            }
+        }
+
+        // Navigation Switcher
         function switchPage(page) {
             document.getElementById('pageHome').classList.add('hidden');
             document.getElementById('pageSummary').classList.add('hidden');
@@ -632,130 +667,189 @@
                 renderHome();
             } else if (page === 'summary') {
                 document.getElementById('pageSummary').classList.remove('hidden');
-                document.getElementById('navSummary').className = 'flex flex-col items-center gap-1 text-neonPurple transition';
+                document.getElementById('navSummary').className = 'flex flex-col items-center gap-1 text-neonCyan transition';
                 renderSummary();
             } else if (page === 'loans') {
                 document.getElementById('pageLoans').classList.remove('hidden');
-                document.getElementById('navLoans').className = 'flex flex-col items-center gap-1 text-neonCyan transition';
+                document.getElementById('navLoans').className = 'flex flex-col items-center gap-1 text-neonPurple transition';
                 renderLoans();
             }
         }
 
-        // Privacy Mode
-        function togglePrivacyMode() {
-            isPrivacyMode = !isPrivacyMode;
-            const icon = document.getElementById('privacyIcon');
-            const targets = document.querySelectorAll('.privacy-target');
-
-            if (isPrivacyMode) {
-                icon.className = 'fa-solid fa-eye-slash text-neonPink';
-                targets.forEach(el => el.classList.add('blur-amount'));
-            } else {
-                icon.className = 'fa-solid fa-eye';
-                targets.forEach(el => el.classList.remove('blur-amount'));
-            }
+        // Helper Modal Open/Close
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
         }
 
-        // Render Home Data
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        // Date Utilities
+        function getTodayString() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // Render Home View
         function renderHome() {
             const currentYear = new Date().getFullYear();
-            let totalInc = 0, totalExp = 0;
+            document.getElementById('currentYearDisplay').innerText = currentYear;
 
-            appData.transactions.forEach(tx => {
-                const txYear = new Date(tx.date).getFullYear();
-                if (txYear === currentYear) {
-                    if (tx.type === 'income') totalInc += tx.amount;
-                    if (tx.type === 'expense') totalExp += tx.amount;
-                }
-            });
-
-            const totalSavings = totalInc - totalExp;
-            const savingsRate = totalInc > 0 ? Math.max(0, Math.round((totalSavings / totalInc) * 100)) : 0;
+            // Yearly Summary Calculations
+            const yearTxs = state.transactions.filter(t => new Date(t.date).getFullYear() === currentYear);
+            const totalInc = yearTxs.filter(t => t.type === 'income').reduce((a, b) => a + b.amount, 0);
+            const totalExp = yearTxs.filter(t => t.type === 'expense').reduce((a, b) => a + b.amount, 0);
+            const savings = totalInc - totalExp;
+            const savingsRate = totalInc > 0 ? Math.max(0, Math.round((savings / totalInc) * 100)) : 0;
 
             document.getElementById('totalYearIncome').innerText = `฿${totalInc.toLocaleString()}`;
             document.getElementById('totalYearExpense').innerText = `฿${totalExp.toLocaleString()}`;
-            document.getElementById('totalYearSavings').innerText = `฿${totalSavings.toLocaleString()}`;
+            document.getElementById('totalYearSavings').innerText = `฿${savings.toLocaleString()}`;
             document.getElementById('savingsRateBadge').innerText = `ออมได้ ${savingsRate}%`;
 
-            // Render Monthly Budget Progress Bar
-            const now = new Date();
-            const currentMonthExp = appData.transactions.filter(tx => {
-                const d = new Date(tx.date);
-                return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && tx.type === 'expense';
-            }).reduce((sum, tx) => sum + tx.amount, 0);
-
-            const budget = appData.monthlyBudget || 15000;
-            const percent = Math.min(100, Math.round((currentMonthExp / budget) * 100));
+            // Current Month Budget Widget
+            const currentMonth = new Date().getMonth();
+            const monthTxs = yearTxs.filter(t => new Date(t.date).getMonth() === currentMonth && t.type === 'expense');
+            const monthExpTotal = monthTxs.reduce((a, b) => a + b.amount, 0);
             
-            document.getElementById('budgetText').innerText = `฿${currentMonthExp.toLocaleString()} / ฿${budget.toLocaleString()}`;
+            document.getElementById('budgetText').innerText = `฿${monthExpTotal.toLocaleString()} / ฿${state.budget.toLocaleString()}`;
+            const pct = Math.min(100, Math.round((monthExpTotal / (state.budget || 1)) * 100));
             const bar = document.getElementById('budgetProgressBar');
-            bar.style.width = `${percent}%`;
+            bar.style.width = `${pct}%`;
+            bar.className = pct > 90 ? 'bg-neonRed h-2.5 rounded-full transition-all duration-500' : 'bg-neonGreen h-2.5 rounded-full transition-all duration-500';
 
-            if (percent <= 70) bar.className = 'bg-neonGreen h-2.5 rounded-full transition-all duration-500';
-            else if (percent <= 90) bar.className = 'bg-neonYellow h-2.5 rounded-full transition-all duration-500';
-            else bar.className = 'bg-neonRed h-2.5 rounded-full transition-all duration-500';
+            // Render Bill Reminders
+            renderBills();
 
+            // Render Recent Transactions
             renderRecentTransactions();
-            renderBillReminders();
+        }
+
+        function renderBills() {
+            const list = document.getElementById('billReminderList');
+            if (state.bills.length === 0) {
+                list.innerHTML = `<p class="text-[11px] text-slate-500 text-center py-2">ไม่มีรายการบิลในระบบ</p>`;
+                return;
+            }
+
+            const currentDay = new Date().getDate();
+            list.innerHTML = state.bills.map((bill, index) => {
+                const diff = bill.dueDay - currentDay;
+                let statusBadge = '';
+                if (diff < 0) {
+                    statusBadge = `<span class="px-2 py-0.5 rounded-full bg-neonRed/20 text-neonRed text-[9px] font-bold">เกินกำหนด</span>`;
+                } else if (diff <= 3) {
+                    statusBadge = `<span class="px-2 py-0.5 rounded-full bg-neonYellow/20 text-neonYellow text-[9px] font-bold">อีก ${diff} วัน</span>`;
+                } else {
+                    statusBadge = `<span class="px-2 py-0.5 rounded-full bg-neonCyan/20 text-neonCyan text-[9px] font-bold">กำหนดวันที่ ${bill.dueDay}</span>`;
+                }
+
+                return `
+                    <div class="flex items-center justify-between p-2 rounded-xl bg-darkBg/60 border border-slate-800">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-receipt text-neonYellow"></i>
+                            <div>
+                                <p class="font-bold text-slate-200 text-xs">${bill.title}</p>
+                                <p class="text-[10px] text-slate-400 privacy-target">฿${bill.amount.toLocaleString()}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            ${statusBadge}
+                            <button onclick="payBill(${index})" class="text-[10px] px-2 py-1 rounded-lg bg-neonGreen/20 text-neonGreen hover:bg-neonGreen/30 active:scale-95">จ่ายแล้ว</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function payBill(index) {
+            const bill = state.bills[index];
+            if (confirm(`บันทึกชำระบิล "${bill.title}" จำนวน ฿${bill.amount} เรียบร้อยแล้ว?`)) {
+                // Auto create transaction
+                const newTx = {
+                    id: Date.now().toString(),
+                    type: 'expense',
+                    title: `ชำระบิล: ${bill.title}`,
+                    amount: bill.amount,
+                    category: 'exp5',
+                    date: getTodayString()
+                };
+                state.transactions.unshift(newTx);
+                localStorage.setItem('expense_app_transactions', JSON.stringify(state.transactions));
+                renderHome();
+            }
         }
 
         function renderRecentTransactions() {
             const list = document.getElementById('recentTransactionList');
-            list.innerHTML = '';
+            const recent = state.transactions.slice(0, 5);
 
-            const sorted = [...appData.transactions].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
-
-            if (sorted.length === 0) {
-                list.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">ยังไม่มีรายการบันทึก</p>`;
+            if (recent.length === 0) {
+                list.innerHTML = `<div class="p-6 text-center text-slate-500 text-xs glass-card rounded-2xl">ยังไม่มีการบันทึกรายการ</div>`;
                 return;
             }
 
-            sorted.forEach(tx => {
-                const isExp = tx.type === 'expense';
-                const color = isExp ? 'text-neonPink' : 'text-neonGreen';
-                const sign = isExp ? '-' : '+';
+            list.innerHTML = recent.map(tx => {
+                const cat = state.categories.find(c => c.id === tx.category) || { name: 'ทั่วไป', icon: 'fa-tags', color: '#00F0FF' };
+                const isExpense = tx.type === 'expense';
 
-                const card = document.createElement('div');
-                card.className = 'glass-card p-3 rounded-2xl flex items-center justify-between border border-slate-800';
-                card.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white text-xs" style="background-color: ${tx.categoryColor || '#A855F7'}">
-                            <i class="fa-solid ${tx.categoryIcon || 'fa-receipt'}"></i>
+                return `
+                    <div class="glass-card p-3 rounded-2xl flex items-center justify-between border border-slate-800">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white" style="background-color: ${cat.color}">
+                                <i class="fa-solid ${cat.icon}"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-bold text-slate-200">${tx.title}</p>
+                                <p class="text-[10px] text-slate-400">${tx.date} • ${cat.name}</p>
+                            </div>
                         </div>
-                        <div>
-                            <p class="text-xs font-bold text-slate-200">${tx.title}</p>
-                            <p class="text-[10px] text-slate-400">${tx.date} • ${tx.categoryName}</p>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold ${isExpense ? 'text-neonPink' : 'text-neonGreen'} privacy-target">
+                                ${isExpense ? '-' : '+'}฿${tx.amount.toLocaleString()}
+                            </span>
+                            <button onclick="deleteTransaction('${tx.id}')" class="text-slate-500 hover:text-neonRed text-xs p-1">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
                         </div>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-xs font-bold ${color} privacy-target">${sign}฿${tx.amount.toLocaleString()}</p>
-                        <button onclick="deleteTransaction('${tx.id}')" class="text-[10px] text-slate-500 hover:text-neonRed transition"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 `;
-                list.appendChild(card);
-            });
+            }).join('');
         }
 
-        // Add Transaction Modal Logic
-        function openAddTransactionModal(mode) {
-            setTransactionType('expense');
-            const dateInput = document.getElementById('txDate');
-            const today = new Date();
-            
-            if (mode === 'today') {
-                dateInput.value = today.toISOString().split('T')[0];
-                dateInput.min = today.toISOString().split('T')[0];
-            } else if (mode === 'backdate') {
-                const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-                dateInput.min = firstDayOfMonth;
-                dateInput.value = today.toISOString().split('T')[0];
+        function deleteTransaction(id) {
+            if (confirm('คุณต้องการลบรายการนี้ใช่หรือไม่?')) {
+                state.transactions = state.transactions.filter(t => t.id !== id);
+                localStorage.setItem('expense_app_transactions', JSON.stringify(state.transactions));
+                renderHome();
+                if (!document.getElementById('pageSummary').classList.contains('hidden')) {
+                    renderSummary();
+                }
             }
+        }
+
+        // Add Transaction Handlers
+        function openAddTransactionModal(mode) {
+            const modal = document.getElementById('addTransactionModal');
+            document.getElementById('txAmount').value = '';
+            document.getElementById('txTitle').value = '';
+            document.getElementById('ocrStatusText').innerText = 'ดึงยอดเงินและวันที่อัตโนมัติ';
             
-            document.getElementById('addTransactionModal').classList.remove('hidden');
+            // Fix & Allow Backdate: Set date to today by default, unlocked
+            const dateInput = document.getElementById('txDate');
+            dateInput.removeAttribute('min');
+            dateInput.value = getTodayString();
+
+            setTransactionType('expense');
+            openModal('addTransactionModal');
         }
 
         function setTransactionType(type) {
-            currentTxType = type;
+            state.selectedType = type;
             const btnExp = document.getElementById('btnTypeExpense');
             const btnInc = document.getElementById('btnTypeIncome');
 
@@ -771,31 +865,28 @@
 
         function renderCategoryGrid() {
             const grid = document.getElementById('categoryGrid');
-            grid.innerHTML = '';
-            const categories = currentTxType === 'expense' ? appData.expenseCategories : appData.incomeCategories;
+            const filtered = state.categories.filter(c => state.selectedType === 'expense' ? c.id.startsWith('exp') : c.id.startsWith('inc'));
+            
+            if (filtered.length > 0 && !state.selectedCategory) {
+                state.selectedCategory = filtered[0].id;
+            }
 
-            categories.forEach(cat => {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.onclick = () => selectCategory(cat);
-                btn.className = `p-2 rounded-2xl bg-darkBg border border-slate-800 flex flex-col items-center justify-center gap-1 active:scale-95 transition cat-btn-${cat.id}`;
-                btn.innerHTML = `
-                    <div class="w-7 h-7 rounded-xl flex items-center justify-center text-white text-xs" style="background-color: ${cat.color}">
-                        <i class="fa-solid ${cat.icon}"></i>
-                    </div>
-                    <span class="text-[9px] text-slate-300 truncate w-full text-center">${cat.name}</span>
+            grid.innerHTML = filtered.map(cat => {
+                const isSelected = state.selectedCategory === cat.id;
+                return `
+                    <button type="button" onclick="selectCategory('${cat.id}')" class="p-2 rounded-2xl flex flex-col items-center justify-center text-center gap-1 border transition ${isSelected ? 'border-neonCyan bg-neonCyan/10 text-white' : 'border-slate-800 bg-darkBg/60 text-slate-400'}">
+                        <div class="w-7 h-7 rounded-lg flex items-center justify-center text-xs text-white" style="background-color: ${cat.color}">
+                            <i class="fa-solid ${cat.icon}"></i>
+                        </div>
+                        <span class="text-[9px] font-bold truncate w-full">${cat.name}</span>
+                    </button>
                 `;
-                grid.appendChild(btn);
-            });
-
-            if (categories.length > 0) selectCategory(categories[0]);
+            }).join('');
         }
 
-        function selectCategory(cat) {
-            currentSelectedCategory = cat;
-            document.querySelectorAll('#categoryGrid button').forEach(b => b.classList.remove('border-neonCyan', 'neon-glow-cyan'));
-            const activeBtn = document.querySelector(`.cat-btn-${cat.id}`);
-            if (activeBtn) activeBtn.classList.add('border-neonCyan', 'neon-glow-cyan');
+        function selectCategory(id) {
+            state.selectedCategory = id;
+            renderCategoryGrid();
         }
 
         function saveTransaction() {
@@ -803,119 +894,195 @@
             const title = document.getElementById('txTitle').value.trim();
             const date = document.getElementById('txDate').value;
 
-            if (!amount || !title || !date || !currentSelectedCategory) {
-                alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+            if (!amount || amount <= 0) {
+                alert('กรุณากรอกจำนวนเงินให้ถูกต้อง');
+                return;
+            }
+            if (!title) {
+                alert('กรุณากรอกชื่อรายการ');
+                return;
+            }
+            if (!date) {
+                alert('กรุณาเลือกวันที่');
                 return;
             }
 
             const newTx = {
-                id: 'tx_' + Date.now(),
-                type: currentTxType,
-                amount: amount,
+                id: Date.now().toString(),
+                type: state.selectedType,
                 title: title,
-                date: date,
-                categoryId: currentSelectedCategory.id,
-                categoryName: currentSelectedCategory.name,
-                categoryIcon: currentSelectedCategory.icon,
-                categoryColor: currentSelectedCategory.color
+                amount: amount,
+                category: state.selectedCategory || (state.selectedType === 'expense' ? 'exp1' : 'inc1'),
+                date: date
             };
 
-            appData.transactions.push(newTx);
-            saveData();
+            state.transactions.unshift(newTx);
+            localStorage.setItem('expense_app_transactions', JSON.stringify(state.transactions));
+            
             closeModal('addTransactionModal');
-            document.getElementById('txAmount').value = '';
-            document.getElementById('txTitle').value = '';
             renderHome();
         }
 
-        function deleteTransaction(id) {
-            if (confirm('ต้องการลบรายการนี้ใช่หรือไม่?')) {
-                appData.transactions = appData.transactions.filter(t => t.id !== id);
-                saveData();
-                renderHome();
-            }
+        // Tesseract OCR Slip Processing
+        function processSlipOCR(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const status = document.getElementById('ocrStatusText');
+            status.innerText = 'กำลังสแกนรูปภาพ...';
+
+            Tesseract.recognize(
+                file,
+                'tha+eng',
+                { logger: m => console.log(m) }
+            ).then(({ data: { text } }) => {
+                console.log('OCR Result:', text);
+                status.innerText = 'สแกนสำเร็จ!';
+
+                // Extract Amount using regular expression
+                const amountMatches = text.match(/(?:จำนวนเงิน|amount|บาท|baht|total)?\s*[:\.]?\s*([\d,]+\.\d{2})/i);
+                if (amountMatches && amountMatches[1]) {
+                    const parsedAmount = parseFloat(amountMatches[1].replace(/,/g, ''));
+                    document.getElementById('txAmount').value = parsedAmount;
+                }
+
+                // Extract Date (DD/MM/YYYY or YYYY-MM-DD)
+                const dateMatches = text.match(/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
+                if (dateMatches) {
+                    const day = dateMatches[1];
+                    const month = dateMatches[2];
+                    let year = parseInt(dateMatches[3]);
+                    if (year > 2500) year -= 543; // Convert Thai Buddhist year to Gregorian
+                    document.getElementById('txDate').value = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                }
+
+                if (!document.getElementById('txTitle').value) {
+                    document.getElementById('txTitle').value = 'โอนเงิน (สแกนสลิป)';
+                }
+            }).catch(err => {
+                console.error(err);
+                status.innerText = 'สแกนไม่สำเร็จ ลองใหม่อีกครั้ง';
+            });
         }
 
-        // Summary & Insights
-        function populateMonthYearDropdowns() {
+        // Render Summary Page
+        function renderSummary() {
+            populateFilterOptions();
+
             const monthSelect = document.getElementById('summaryMonth');
             const yearSelect = document.getElementById('summaryYear');
 
-            const months = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
-            monthSelect.innerHTML = months.map((m, idx) => `<option value="${idx}">${m}</option>`).join('');
+            const selMonth = parseInt(monthSelect.value);
+            const selYear = parseInt(yearSelect.value);
 
-            const now = new Date();
-            monthSelect.value = now.getMonth();
-
-            const currentYear = now.getFullYear();
-            yearSelect.innerHTML = `<option value="${currentYear}">${currentYear}</option>
-                                    <option value="${currentYear - 1}">${currentYear - 1}</option>`;
-        }
-
-        function renderSummary() {
-            const m = parseInt(document.getElementById('summaryMonth').value);
-            const y = parseInt(document.getElementById('summaryYear').value);
-
-            let mInc = 0, mExp = 0;
-            const catMap = {};
-
-            appData.transactions.forEach(tx => {
-                const d = new Date(tx.date);
-                if (d.getMonth() === m && d.getFullYear() === y) {
-                    if (tx.type === 'income') mInc += tx.amount;
-                    if (tx.type === 'expense') {
-                        mExp += tx.amount;
-                        catMap[tx.categoryName] = (catMap[tx.categoryName] || 0) + tx.amount;
-                    }
-                }
+            // Filter Txs
+            const filtered = state.transactions.filter(t => {
+                const d = new Date(t.date);
+                return d.getMonth() === selMonth && d.getFullYear() === selYear;
             });
 
-            document.getElementById('monthlyIncome').innerText = `฿${mInc.toLocaleString()}`;
-            document.getElementById('monthlyExpense').innerText = `฿${mExp.toLocaleString()}`;
+            const income = filtered.filter(t => t.type === 'income').reduce((a, b) => a + b.amount, 0);
+            const expense = filtered.filter(t => t.type === 'expense').reduce((a, b) => a + b.amount, 0);
 
-            renderCalendarGrid(m, y);
-            renderCategoryChartAndPercent(catMap, mExp);
+            document.getElementById('monthlyIncome').innerText = `฿${income.toLocaleString()}`;
+            document.getElementById('monthlyExpense').innerText = `฿${expense.toLocaleString()}`;
+
+            renderCalendarGrid(selYear, selMonth, filtered);
+            renderDoughnutChart(filtered);
         }
 
-        function renderCalendarGrid(m, y) {
+        function populateFilterOptions() {
+            const monthSelect = document.getElementById('summaryMonth');
+            const yearSelect = document.getElementById('summaryYear');
+
+            if (monthSelect.children.length === 0) {
+                monthSelect.innerHTML = thaiMonths.map((m, idx) => `<option value="${idx}">${m}</option>`).join('');
+                monthSelect.value = new Date().getMonth();
+            }
+
+            if (yearSelect.children.length === 0) {
+                const currentYear = new Date().getFullYear();
+                const years = [currentYear - 2, currentYear - 1, currentYear, currentYear + 1];
+                yearSelect.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
+                yearSelect.value = currentYear;
+            }
+        }
+
+        function renderCalendarGrid(year, month, monthTxs) {
             const grid = document.getElementById('calendarGrid');
             grid.innerHTML = '';
 
-            const firstDay = new Date(y, m, 1).getDay();
-            const daysInMonth = new Date(y, m + 1, 0).getDate();
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
 
+            // Empty Cells before 1st day
             for (let i = 0; i < firstDay; i++) {
-                grid.appendChild(document.createElement('div'));
+                grid.innerHTML += `<div class="h-10"></div>`;
             }
 
+            // Days Cells
             for (let day = 1; day <= daysInMonth; day++) {
-                const dayExp = appData.transactions.filter(tx => {
-                    const d = new Date(tx.date);
-                    return d.getDate() === day && d.getMonth() === m && d.getFullYear() === y && tx.type === 'expense';
-                }).reduce((sum, tx) => sum + tx.amount, 0);
+                const dayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayExp = monthTxs.filter(t => t.date === dayStr && t.type === 'expense').reduce((a, b) => a + b.amount, 0);
 
-                const cell = document.createElement('div');
-                cell.className = 'p-1 rounded-xl bg-darkBg border border-slate-800 flex flex-col items-center justify-between min-h-[42px]';
-                cell.innerHTML = `
-                    <span class="text-[9px] text-slate-400 font-bold">${day}</span>
-                    ${dayExp > 0 ? `<span class="text-[8px] text-neonPink font-bold truncate w-full privacy-target">฿${dayExp}</span>` : ''}
+                let badge = '';
+                if (dayExp > 0) {
+                    badge = `<span class="text-[8px] text-neonPink font-bold truncate block">฿${dayExp >= 1000 ? (dayExp/1000).toFixed(1)+'k' : dayExp}</span>`;
+                }
+
+                grid.innerHTML += `
+                    <div class="h-10 rounded-xl bg-darkBg/60 border border-slate-800 p-1 flex flex-col justify-between items-center">
+                        <span class="text-[10px] text-slate-300 font-bold">${day}</span>
+                        ${badge}
+                    </div>
                 `;
-                grid.appendChild(cell);
             }
         }
 
-        function renderCategoryChartAndPercent(catMap, totalExp) {
-            const list = document.getElementById('categoryPercentList');
-            list.innerHTML = '';
+        function renderDoughnutChart(monthTxs) {
+            const expTxs = monthTxs.filter(t => t.type === 'expense');
+            const catTotals = {};
 
-            const labels = Object.keys(catMap);
-            const data = Object.values(catMap);
-            const colors = ['#FF2E93', '#A855F7', '#00F0FF', '#10B981', '#F59E0B', '#EF4444', '#3B82F6'];
+            expTxs.forEach(t => {
+                catTotals[t.category] = (catTotals[t.category] || 0) + t.amount;
+            });
 
-            if (categoryChartInstance) categoryChartInstance.destroy();
+            const labels = [];
+            const data = [];
+            const colors = [];
+
+            const totalExp = expTxs.reduce((a, b) => a + b.amount, 0);
+            const percentList = document.getElementById('categoryPercentList');
+            percentList.innerHTML = '';
+
+            Object.keys(catTotals).forEach(catId => {
+                const cat = state.categories.find(c => c.id === catId) || { name: 'อื่นๆ', color: '#A855F7' };
+                labels.push(cat.name);
+                data.push(catTotals[catId]);
+                colors.push(cat.color);
+
+                const pct = totalExp > 0 ? Math.round((catTotals[catId] / totalExp) * 100) : 0;
+                percentList.innerHTML += `
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-[11px]">
+                            <span class="text-slate-300 flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full inline-block" style="background:${cat.color}"></span> ${cat.name}</span>
+                            <span class="font-bold text-slate-200">${pct}% (฿${catTotals[catId].toLocaleString()})</span>
+                        </div>
+                        <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                            <div class="h-1.5 rounded-full" style="width:${pct}%; background:${cat.color}"></div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            if (Object.keys(catTotals).length === 0) {
+                percentList.innerHTML = `<p class="text-center text-slate-500 text-xs py-2">ไม่มีข้อมูลรายจ่ายในเดือนนี้</p>`;
+            }
 
             const ctx = document.getElementById('categoryDoughnutChart').getContext('2d');
-            categoryChartInstance = new Chart(ctx, {
+            if (doughnutChartInstance) doughnutChartInstance.destroy();
+
+            doughnutChartInstance = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
                     labels: labels,
@@ -928,63 +1095,75 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } }
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    cutout: '70%'
                 }
             });
-
-            labels.forEach((label, idx) => {
-                const amount = catMap[label];
-                const pct = totalExp > 0 ? ((amount / totalExp) * 100).toFixed(1) : 0;
-
-                const row = document.createElement('div');
-                row.className = 'space-y-1';
-                row.innerHTML = `
-                    <div class="flex justify-between text-[11px] text-slate-300">
-                        <span>${label}</span>
-                        <span class="font-bold privacy-target">฿${amount.toLocaleString()} (${pct}%)</span>
-                    </div>
-                    <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                        <div class="h-1.5 rounded-full" style="width: ${pct}%; background-color: ${colors[idx % colors.length]}"></div>
-                    </div>
-                `;
-                list.appendChild(row);
-            });
         }
 
-        function toggleInsightsModal() {
-            document.getElementById('insightsModal').classList.remove('hidden');
-            renderYearlyInsights();
-        }
-
-        function renderYearlyInsights() {
+        // Insights Modal & Yearly Stats
+        function openInsightsModal() {
+            openModal('insightsModal');
+            
             const currentYear = new Date().getFullYear();
-            const monthlySums = new Array(12).fill(0);
-            let totalCount = 0;
-            let totalExpYear = 0;
-            const catMap = {};
-            const dayOfWeekMap = new Array(7).fill(0);
+            const yearTxs = state.transactions.filter(t => new Date(t.date).getFullYear() === currentYear);
+            const expTxs = yearTxs.filter(t => t.type === 'expense');
 
-            appData.transactions.forEach(tx => {
-                const d = new Date(tx.date);
-                if (d.getFullYear() === currentYear && tx.type === 'expense') {
-                    monthlySums[d.getMonth()] += tx.amount;
-                    totalCount++;
-                    totalExpYear += tx.amount;
-                    catMap[tx.categoryName] = (catMap[tx.categoryName] || 0) + tx.amount;
-                    dayOfWeekMap[d.getDay()] += tx.amount;
+            // Total Count
+            document.getElementById('statTotalCount').innerText = `${yearTxs.length} รายการ`;
+
+            // Avg per day
+            const totalExp = expTxs.reduce((a, b) => a + b.amount, 0);
+            const avgDay = Math.round(totalExp / 365);
+            document.getElementById('statAvgPerDay').innerText = `฿${avgDay.toLocaleString()}`;
+
+            // Monthly Breakdown Bar Chart
+            const monthlySums = new Array(12).fill(0);
+            expTxs.forEach(t => {
+                const m = new Date(t.date).getMonth();
+                monthlySums[m] += t.amount;
+            });
+
+            const maxM = monthlySums.indexOf(Math.max(...monthlySums));
+            document.getElementById('statMaxMonth').innerText = monthlySums[maxM] > 0 ? thaiMonths[maxM] : '-';
+
+            // Top Category
+            const catSums = {};
+            expTxs.forEach(t => {
+                catSums[t.category] = (catSums[t.category] || 0) + t.amount;
+            });
+            let topCatId = null;
+            let maxCatAmt = 0;
+            Object.keys(catSums).forEach(cid => {
+                if (catSums[cid] > maxCatAmt) {
+                    maxCatAmt = catSums[cid];
+                    topCatId = cid;
                 }
             });
 
+            if (topCatId) {
+                const cat = state.categories.find(c => c.id === topCatId) || { name: 'ทั่วไป' };
+                document.getElementById('statTopCatName').innerText = cat.name;
+                document.getElementById('statTopCatAmount').innerText = `฿${maxCatAmt.toLocaleString()}`;
+            } else {
+                document.getElementById('statTopCatName').innerText = '-';
+                document.getElementById('statTopCatAmount').innerText = '฿0';
+            }
+
+            // Render Yearly Bar Chart
+            const ctx = document.getElementById('yearlyBarChart').getContext('2d');
             if (barChartInstance) barChartInstance.destroy();
 
-            const ctx = document.getElementById('yearlyBarChart').getContext('2d');
             barChartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'],
                     datasets: [{
+                        label: 'รายจ่าย',
                         data: monthlySums,
-                        backgroundColor: '#A855F7',
+                        backgroundColor: '#FF2E93',
                         borderRadius: 6
                     }]
                 },
@@ -993,70 +1172,67 @@
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        x: { ticks: { color: '#94A3B8', font: { size: 9 } } },
-                        y: { ticks: { color: '#94A3B8', font: { size: 9 } } }
+                        x: { grid: { display: false }, ticks: { color: '#94A3B8', font: { size: 9 } } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94A3B8', font: { size: 9 } } }
                     }
                 }
             });
-
-            document.getElementById('statTotalCount').innerText = `${totalCount} รายการ`;
-            document.getElementById('statAvgPerDay').innerText = `฿${Math.round(totalExpYear / 365).toLocaleString()}`;
-
-            const days = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
-            const maxDayIdx = dayOfWeekMap.indexOf(Math.max(...dayOfWeekMap));
-            document.getElementById('statMaxDayOfWeek').innerText = totalExpYear > 0 ? days[maxDayIdx] : '-';
-
-            const months = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
-            const maxMonthIdx = monthlySums.indexOf(Math.max(...monthlySums));
-            document.getElementById('statMaxMonth').innerText = totalExpYear > 0 ? months[maxMonthIdx] : '-';
-
-            let topCat = '-', topCatAmt = 0;
-            Object.keys(catMap).forEach(cat => {
-                if (catMap[cat] > topCatAmt) {
-                    topCatAmt = catMap[cat];
-                    topCat = cat;
-                }
-            });
-            document.getElementById('statTopCatName').innerText = topCat;
-            document.getElementById('statTopCatAmount').innerText = `฿${topCatAmt.toLocaleString()}`;
         }
 
-        // OCR Slip Scanner
-        function processSlipOCR(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        // Loans Section Logic
+        function renderLoans() {
+            const list = document.getElementById('loanList');
+            const totalLent = state.loans.filter(l => l.type === 'lent' && !l.settled).reduce((a, b) => a + b.amount, 0);
+            const totalBorrowed = state.loans.filter(l => l.type === 'borrowed' && !l.settled).reduce((a, b) => a + b.amount, 0);
 
-            Tesseract.recognize(file, 'tha+eng', { logger: m => console.log(m) })
-                .then(({ data: { text } }) => {
-                    const amountMatch = text.match(/(\d{1,3}(,\d{3})*(\.\d{2})?)\s*(บาท|THB)/i) || text.match(/จำนวนเงิน\s*(\d+(\.\d{2})?)/);
-                    if (amountMatch) {
-                        const cleanAmount = amountMatch[1].replace(',', '');
-                        document.getElementById('txAmount').value = cleanAmount;
-                    }
-                    document.getElementById('txTitle').value = 'สแกนสลิปโอนเงิน';
-                    alert('สแกนอ่านข้อมูลสลิปเรียบร้อยแล้ว!');
-                })
-                .catch(err => {
-                    alert('ไม่สามารถอ่านข้อมูลจากสลิปได้ กรุณากรอกด้วยตนเอง');
-                });
+            document.getElementById('totalLent').innerText = `฿${totalLent.toLocaleString()}`;
+            document.getElementById('totalBorrowed').innerText = `฿${totalBorrowed.toLocaleString()}`;
+
+            if (state.loans.length === 0) {
+                list.innerHTML = `<div class="p-6 text-center text-slate-500 text-xs glass-card rounded-2xl">ไม่มีรายการยืมเงิน</div>`;
+                return;
+            }
+
+            list.innerHTML = state.loans.map((loan, index) => {
+                const isLent = loan.type === 'lent';
+                return `
+                    <div class="glass-card p-3.5 rounded-2xl flex items-center justify-between border border-slate-800 ${loan.settled ? 'opacity-50' : ''}">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white ${isLent ? 'bg-neonCyan/20 text-neonCyan' : 'bg-neonYellow/20 text-neonYellow'}">
+                                <i class="fa-solid ${isLent ? 'fa-hand-holding-hand' : 'fa-hand-holding-dollar'}"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-bold text-slate-200">${loan.person} <span class="text-[10px] text-slate-400">(${isLent ? 'เราให้ยืม' : 'เรายืมเขา'})</span></p>
+                                <p class="text-[10px] text-slate-400">${loan.date} ${loan.settled ? '• คืนแล้ว' : ''}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold ${isLent ? 'text-neonCyan' : 'text-neonYellow'} privacy-target">฿${loan.amount.toLocaleString()}</span>
+                            ${!loan.settled ? `<button onclick="settleLoan(${index})" class="text-[10px] px-2 py-1 rounded-lg bg-neonGreen/20 text-neonGreen font-bold hover:bg-neonGreen/30 active:scale-95">คืนแล้ว</button>` : ''}
+                            <button onclick="deleteLoan(${index})" class="text-slate-500 hover:text-neonRed p-1 text-xs"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
-        // Loans Management
-        let currentLoanType = 'lent';
         function openAddLoanModal() {
-            document.getElementById('addLoanModal').classList.remove('hidden');
+            document.getElementById('loanPerson').value = '';
+            document.getElementById('loanAmount').value = '';
+            setLoanType('lent');
+            openModal('addLoanModal');
         }
 
         function setLoanType(type) {
-            currentLoanType = type;
+            state.loanType = type;
             const btnLent = document.getElementById('btnLoanLent');
-            const btnBor = document.getElementById('btnLoanBorrowed');
+            const btnBorrow = document.getElementById('btnLoanBorrowed');
 
             if (type === 'lent') {
                 btnLent.className = 'py-2 rounded-xl text-xs font-bold transition bg-neonCyan text-white';
-                btnBor.className = 'py-2 rounded-xl text-xs font-bold transition text-slate-400';
+                btnBorrow.className = 'py-2 rounded-xl text-xs font-bold transition text-slate-400';
             } else {
-                btnBor.className = 'py-2 rounded-xl text-xs font-bold transition bg-neonYellow text-black';
+                btnBorrow.className = 'py-2 rounded-xl text-xs font-bold transition bg-neonYellow text-black';
                 btnLent.className = 'py-2 rounded-xl text-xs font-bold transition text-slate-400';
             }
         }
@@ -1065,185 +1241,126 @@
             const person = document.getElementById('loanPerson').value.trim();
             const amount = parseFloat(document.getElementById('loanAmount').value);
 
-            if (!person || !amount) {
+            if (!person || !amount || amount <= 0) {
                 alert('กรุณากรอกข้อมูลให้ครบถ้วน');
                 return;
             }
 
-            appData.loans.push({
-                id: 'loan_' + Date.now(),
-                type: currentLoanType,
+            const newLoan = {
+                id: Date.now().toString(),
                 person: person,
                 amount: amount,
-                isSettled: false,
-                date: new Date().toISOString().split('T')[0]
-            });
+                type: state.loanType,
+                settled: false,
+                date: getTodayString()
+            };
 
-            saveData();
+            state.loans.unshift(newLoan);
+            localStorage.setItem('expense_app_loans', JSON.stringify(state.loans));
             closeModal('addLoanModal');
-            document.getElementById('loanPerson').value = '';
-            document.getElementById('loanAmount').value = '';
             renderLoans();
         }
 
-        function renderLoans() {
-            const list = document.getElementById('loanList');
-            list.innerHTML = '';
-
-            let totalLent = 0, totalBorrowed = 0;
-
-            appData.loans.forEach(loan => {
-                if (!loan.isSettled) {
-                    if (loan.type === 'lent') totalLent += loan.amount;
-                    if (loan.type === 'borrowed') totalBorrowed += loan.amount;
-                }
-
-                const card = document.createElement('div');
-                card.className = `glass-card p-3 rounded-2xl flex items-center justify-between border ${loan.isSettled ? 'border-slate-800 opacity-60' : 'border-slate-700'}`;
-                card.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-xl flex items-center justify-center text-xs ${loan.type === 'lent' ? 'bg-neonCyan/20 text-neonCyan' : 'bg-neonYellow/20 text-neonYellow'}">
-                            <i class="fa-solid ${loan.type === 'lent' ? 'fa-hand-holding-hand' : 'fa-hand-holding-dollar'}"></i>
-                        </div>
-                        <div>
-                            <p class="text-xs font-bold text-slate-200">${loan.person} <span class="text-[9px] text-slate-400">(${loan.type === 'lent' ? 'ให้ยืม' : 'ยืมเขา'})</span></p>
-                            <p class="text-[10px] text-slate-400">${loan.date}</p>
-                        </div>
-                    </div>
-                    <div class="text-right flex items-center gap-2">
-                        <div>
-                            <p class="text-xs font-bold ${loan.type === 'lent' ? 'text-neonCyan' : 'text-neonYellow'} privacy-target">฿${loan.amount.toLocaleString()}</p>
-                            <p class="text-[9px] ${loan.isSettled ? 'text-neonGreen' : 'text-slate-500'}">${loan.isSettled ? 'คืนแล้ว' : 'ค้างชำระ'}</p>
-                        </div>
-                        ${!loan.isSettled ? `<button onclick="settleLoan('${loan.id}')" class="px-2 py-1 bg-neonGreen/20 text-neonGreen border border-neonGreen/40 rounded-lg text-[10px] font-bold">ยืนยันคืน</button>` : ''}
-                    </div>
-                `;
-                list.appendChild(card);
-            });
-
-            document.getElementById('totalLent').innerText = `฿${totalLent.toLocaleString()}`;
-            document.getElementById('totalBorrowed').innerText = `฿${totalBorrowed.toLocaleString()}`;
+        function settleLoan(index) {
+            state.loans[index].settled = true;
+            localStorage.setItem('expense_app_loans', JSON.stringify(state.loans));
+            renderLoans();
         }
 
-        function settleLoan(id) {
-            const loan = appData.loans.find(l => l.id === id);
-            if (loan) {
-                loan.isSettled = true;
-                saveData();
+        function deleteLoan(index) {
+            if (confirm('คุณต้องการลบรายการนี้ใช่หรือไม่?')) {
+                state.loans.splice(index, 1);
+                localStorage.setItem('expense_app_loans', JSON.stringify(state.loans));
                 renderLoans();
             }
         }
 
-        // Bill Reminders
+        // Bills & Settings Handlers
         function openAddBillModal() {
-            document.getElementById('addBillModal').classList.remove('hidden');
+            document.getElementById('billTitle').value = '';
+            document.getElementById('billAmount').value = '';
+            document.getElementById('billDueDay').value = '';
+            openModal('addBillModal');
         }
 
         function saveBill() {
             const title = document.getElementById('billTitle').value.trim();
             const amount = parseFloat(document.getElementById('billAmount').value);
-            const day = parseInt(document.getElementById('billDueDay').value);
+            const dueDay = parseInt(document.getElementById('billDueDay').value);
 
-            if (!title || !amount || !day) return;
-
-            appData.bills.push({
-                id: 'bill_' + Date.now(),
-                title: title,
-                amount: amount,
-                dueDay: day
-            });
-
-            saveData();
-            closeModal('addBillModal');
-            renderBillReminders();
-        }
-
-        function renderBillReminders() {
-            const list = document.getElementById('billReminderList');
-            list.innerHTML = '';
-
-            if (appData.bills.length === 0) {
-                list.innerHTML = `<p class="text-[10px] text-slate-500">ไม่มีรายการบิลที่ตั้งเตือนไว้</p>`;
+            if (!title || !amount || !dueDay || dueDay < 1 || dueDay > 31) {
+                alert('กรุณากรอกข้อมูลบิลให้ถูกต้อง');
                 return;
             }
 
-            appData.bills.forEach(bill => {
-                const card = document.createElement('div');
-                card.className = 'p-2 rounded-xl bg-darkBg border border-slate-800 flex justify-between items-center';
-                card.innerHTML = `
-                    <div>
-                        <p class="font-bold text-slate-200">${bill.title}</p>
-                        <p class="text-[9px] text-slate-400">ครบกำหนดวันที่ ${bill.dueDay} ของทุกเดือน</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="font-bold text-neonYellow privacy-target">฿${bill.amount.toLocaleString()}</p>
-                        <button onclick="payBill('${bill.id}')" class="text-[9px] text-neonGreen hover:underline">กดจ่ายแล้ว</button>
-                    </div>
-                `;
-                list.appendChild(card);
-            });
+            state.bills.push({ title, amount, dueDay });
+            localStorage.setItem('expense_app_bills', JSON.stringify(state.bills));
+            closeModal('addBillModal');
+            renderHome();
         }
 
-        function payBill(id) {
-            const bill = appData.bills.find(b => b.id === id);
-            if (bill) {
-                appData.transactions.push({
-                    id: 'tx_' + Date.now(),
-                    type: 'expense',
-                    amount: bill.amount,
-                    title: `ชำระบิล: ${bill.title}`,
-                    date: new Date().toISOString().split('T')[0],
-                    categoryId: 'exp5',
-                    categoryName: 'ค่าสาธารณูปโภค',
-                    categoryIcon: 'fa-bolt',
-                    categoryColor: '#F59E0B'
-                });
-                saveData();
-                renderHome();
-                alert('ลงบันทึกการชำระบิลเรียบร้อย!');
-            }
-        }
-
-        function checkRecurringBills() {
-            // Placeholder for automatic bill check on startup
-        }
-
-        // Settings & Export/Import
         function openSettingsModal() {
-            document.getElementById('settingMonthlyBudget').value = appData.monthlyBudget || 15000;
-            document.getElementById('settingsModal').classList.remove('hidden');
+            document.getElementById('settingMonthlyBudget').value = state.budget;
+            openModal('settingsModal');
         }
 
         function saveBudgetSetting() {
             const val = parseFloat(document.getElementById('settingMonthlyBudget').value);
-            if (val) {
-                appData.monthlyBudget = val;
-                saveData();
+            if (val && val > 0) {
+                state.budget = val;
+                localStorage.setItem('expense_app_budget', val);
+                alert('บันทึกงบประมาณเรียบร้อยแล้ว!');
                 renderHome();
-                closeModal('settingsModal');
             }
         }
 
-        function exportCSV() {
-            let csv = '\uFEFFDate,Type,Title,Category,Amount\n';
-            appData.transactions.forEach(tx => {
-                csv += `"${tx.date}","${tx.type}","${tx.title}","${tx.categoryName}",${tx.amount}\n`;
-            });
+        function openAddCategoryModal() {
+            document.getElementById('newCatName').value = '';
+            openModal('addCategoryModal');
+        }
 
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        function saveCustomCategory() {
+            const name = document.getElementById('newCatName').value.trim();
+            const color = document.getElementById('newCatColor').value;
+
+            if (!name) {
+                alert('กรุณากรอกชื่อหมวดหมู่');
+                return;
+            }
+
+            const prefix = state.selectedType === 'expense' ? 'exp' : 'inc';
+            const newCat = {
+                id: `${prefix}_custom_${Date.now()}`,
+                name: name,
+                icon: 'fa-star',
+                color: color
+            };
+
+            state.categories.push(newCat);
+            localStorage.setItem('expense_app_categories', JSON.stringify(state.categories));
+            closeModal('addCategoryModal');
+            renderCategoryGrid();
+        }
+
+        // Export / Import CSV & JSON
+        function exportCSV() {
+            let csv = 'ID,Type,Title,Amount,Category,Date\n';
+            state.transactions.forEach(t => {
+                csv += `"${t.id}","${t.type}","${t.title}",${t.amount},"${t.category}","${t.date}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `expense_backup_${new Date().toISOString().split('T')[0]}.csv`;
+            a.download = `expense_backup_${getTodayString()}.csv`;
             a.click();
         }
 
         function exportJSON() {
-            const blob = new Blob([JSON.stringify(appData, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
             const a = document.createElement('a');
-            a.href = url;
-            a.download = `expense_data_${new Date().toISOString().split('T')[0]}.json`;
+            a.href = dataStr;
+            a.download = `expense_full_backup_${getTodayString()}.json`;
             a.click();
         }
 
@@ -1252,22 +1369,30 @@
             if (!file) return;
 
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = function(e) {
                 try {
                     const imported = JSON.parse(e.target.result);
-                    appData = { ...appData, ...imported };
-                    saveData();
-                    renderHome();
-                    closeModal('settingsModal');
-                    alert('นำเข้าข้อมูลเรียบร้อยแล้ว!');
-                } catch(err) { alert('ไฟล์ JSON ไม่ถูกต้อง'); }
+                    if (imported.transactions) {
+                        state = { ...state, ...imported };
+                        localStorage.setItem('expense_app_transactions', JSON.stringify(state.transactions));
+                        localStorage.setItem('expense_app_categories', JSON.stringify(state.categories));
+                        localStorage.setItem('expense_app_bills', JSON.stringify(state.bills));
+                        localStorage.setItem('expense_app_loans', JSON.stringify(state.loans));
+                        alert('นำเข้าข้อมูลสำเร็จ!');
+                        renderHome();
+                        closeModal('settingsModal');
+                    }
+                } catch(err) {
+                    alert('ไฟล์ JSON ไม่ถูกต้อง');
+                }
             };
             reader.readAsText(file);
         }
 
-        function closeModal(id) {
-            document.getElementById(id).classList.add('hidden');
-        }
+        // Initialize App on Window Load
+        window.onload = function() {
+            renderHome();
+        };
     </script>
 </body>
 </html>
