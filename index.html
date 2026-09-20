@@ -321,14 +321,19 @@
             <div id="fullWalletGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
         </section>
 
-        <!-- TAB 3: CALENDAR -->
+        <!-- TAB 3: CALENDAR & SUMMARY -->
         <section id="tab-calendar" class="tab-content space-y-5 hidden">
             <div class="flex justify-between items-center">
                 <div>
                     <h2 class="text-lg font-bold text-themeText">ปฏิทิน & สรุปผล</h2>
-                    <p class="text-xs text-themeMuted">ดูแนวโน้มการใช้จ่ายในแต่ละวัน</p>
+                    <p class="text-xs text-themeMuted">ดูแนวโน้มการใช้จ่ายในแต่ละวันและรายงานสรุป</p>
                 </div>
-                <input type="month" id="calendarMonthPicker" onchange="renderCalendar()" class="bg-themeCard text-xs border border-themeBorder rounded-xl px-3 py-1.5 text-amber-600 focus:outline-none">
+                <div class="flex items-center gap-2">
+                    <button onclick="openSummaryReportModal()" class="px-3 py-1.5 rounded-xl bg-amber-600 text-white text-xs font-semibold shadow-sm flex items-center gap-1.5 hover:opacity-90">
+                        <i class="fa-solid fa-chart-pie"></i> สรุปรายงาน
+                    </button>
+                    <input type="month" id="calendarMonthPicker" onchange="renderCalendar()" class="bg-themeCard text-xs border border-themeBorder rounded-xl px-3 py-1.5 text-amber-600 focus:outline-none">
+                </div>
             </div>
             <div class="glass-card rounded-3xl p-4 space-y-3">
                 <div class="grid grid-cols-7 text-center text-[11px] font-semibold text-themeMuted pb-2 border-b border-themeBorder">
@@ -450,6 +455,176 @@
     </nav>
 
     <!-- MODALS SECTION -->
+    <!-- Summary Report Modal (NEW) -->
+    <div id="summaryReportModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-themeCard w-full max-w-2xl rounded-3xl p-5 border border-themeBorder space-y-5 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center pb-3 border-b border-themeBorder">
+                <h3 class="text-base font-bold text-themeText flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie text-amber-600"></i> สรุปรายงานภาพรวม & ประมาณการภาษี
+                </h3>
+                <button onclick="closeModal('summaryReportModal')" class="text-themeMuted hover:text-themeText">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Tabs inside Summary Report -->
+            <div class="grid grid-cols-2 gap-2 bg-themeSub p-1 rounded-2xl text-center">
+                <button onclick="switchSummarySubTab('month')" id="btnSumSubMonth" class="py-2 rounded-xl text-xs font-semibold bg-amber-600 text-white transition">1. เดือน (รายรับ-รายจ่าย)</button>
+                <button onclick="switchSummarySubTab('tax')" id="btnSumSubTax" class="py-2 rounded-xl text-xs font-semibold text-themeMuted transition">2. ประมาณการภาษี (ภ.ง.ด.90/91)</button>
+            </div>
+
+            <!-- Sub Tab 1: Month -->
+            <div id="sumSubTabMonth" class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-themeMuted">เลือกปี/เดือนที่ต้องการดูสรุป</span>
+                    <input type="month" id="sumReportMonthPicker" onchange="renderSummaryMonthView()" class="bg-themeSub text-xs border border-themeBorder rounded-xl px-3 py-1.5 text-amber-600 focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="glass-card p-3 rounded-2xl">
+                        <p class="text-[10px] text-themeMuted">ยอดสุทธิประจำเดือน</p>
+                        <p id="sumNetMonth" class="text-sm font-bold text-amber-600">฿0.00</p>
+                    </div>
+                    <div class="glass-card p-3 rounded-2xl">
+                        <p class="text-[10px] text-themeMuted">ค่าเฉลี่ยจ่ายต่อวัน</p>
+                        <p id="sumDailyAvgExpense" class="text-sm font-bold text-rose-500">฿0.00</p>
+                    </div>
+                </div>
+                <div class="glass-card p-4 rounded-2xl space-y-3">
+                    <h4 class="text-xs font-bold text-themeText flex items-center gap-1.5">
+                        <i class="fa-solid fa-chart-column text-amber-600"></i> กราฟรายเดือนในรอบปี
+                    </h4>
+                    <div class="relative h-40 flex justify-center items-center">
+                        <canvas id="sumMonthTrendChart"></canvas>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <h4 class="text-xs font-bold text-themeText">ตารางสรุปรายรับ-รายจ่ายรายเดือน</h4>
+                    <div class="overflow-x-auto border border-themeBorder rounded-xl">
+                        <table class="w-full text-left text-[11px]">
+                            <thead class="bg-themeSub text-themeText font-semibold border-b border-themeBorder">
+                                <tr>
+                                    <th class="p-2">เดือน</th>
+                                    <th class="p-2 text-emerald-600">รายรับ</th>
+                                    <th class="p-2 text-rose-500">รายจ่าย</th>
+                                    <th class="p-2">สุทธิ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sumMonthTableBody" class="divide-y divide-themeBorder text-themeMuted"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sub Tab 2: Tax -->
+            <div id="sumSubTabTax" class="space-y-4 hidden">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-themeMuted">เลือกปีภาษี (พ.ศ.)</span>
+                    <select id="taxYearSelect" onchange="calculateTaxReport()" class="bg-themeSub text-xs border border-themeBorder rounded-xl px-3 py-1.5 text-amber-600 focus:outline-none">
+                        <option value="2026">2026 (2569)</option>
+                        <option value="2025">2025 (2568)</option>
+                    </select>
+                </div>
+                
+                <!-- Base Income Summary -->
+                <div class="glass-card p-4 rounded-2xl space-y-2">
+                    <h4 class="text-xs font-bold text-themeText flex items-center gap-1.5">
+                        <i class="fa-solid fa-coins text-amber-600"></i> สรุปฐานรายได้ทั้งปี
+                    </h4>
+                    <div class="grid grid-cols-2 gap-3 text-xs pt-1">
+                        <div class="bg-themeSub/50 p-2.5 rounded-xl">
+                            <span class="text-themeMuted text-[10px]">รายรับรวมทั้งปี</span>
+                            <p id="taxTotalIncome" class="font-bold text-emerald-600">฿0.00</p>
+                        </div>
+                        <div class="bg-themeSub/50 p-2.5 rounded-xl">
+                            <span class="text-themeMuted text-[10px]">รายจ่ายรวมทั้งปี</span>
+                            <p id="taxTotalExpense" class="font-bold text-rose-500">฿0.00</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Deductions Input -->
+                <div class="glass-card p-4 rounded-2xl space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h4 class="text-xs font-bold text-themeText flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-invoice text-amber-600"></i> ค่าลดหย่อย (อ้างอิง ภ.ง.ด.90, 91)
+                        </h4>
+                        <span id="taxTotalDeductionText" class="text-xs font-bold text-amber-600">รวม ฿60,000</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        <div class="flex items-center justify-between bg-themeSub/50 p-2 rounded-xl">
+                            <span class="text-[11px] text-themeMuted">ลดหย่อยส่วนตัว (60,000)</span>
+                            <input type="number" id="deductPersonal" value="60000" oninput="calculateTaxReport()" class="w-24 bg-themeCard border border-themeBorder rounded-lg px-2 py-1 text-right text-xs font-semibold focus:outline-none">
+                        </div>
+                        <div class="flex items-center justify-between bg-themeSub/50 p-2 rounded-xl">
+                            <span class="text-[11px] text-themeMuted">ประกันสังคม</span>
+                            <input type="number" id="deductSocial" value="9000" oninput="calculateTaxReport()" class="w-24 bg-themeCard border border-themeBorder rounded-lg px-2 py-1 text-right text-xs font-semibold focus:outline-none">
+                        </div>
+                        <div class="flex items-center justify-between bg-themeSub/50 p-2 rounded-xl">
+                            <span class="text-[11px] text-themeMuted">กองทุนสำรองเลี้ยงชีพ / SSF / RMF</span>
+                            <input type="number" id="deductProvident" value="0" oninput="calculateTaxReport()" class="w-24 bg-themeCard border border-themeBorder rounded-lg px-2 py-1 text-right text-xs font-semibold focus:outline-none">
+                        </div>
+                        <div class="flex items-center justify-between bg-themeSub/50 p-2 rounded-xl">
+                            <span class="text-[11px] text-themeMuted">เบี้ยประกันชีวิต / ประกันสุขภาพ</span>
+                            <input type="number" id="deductInsurance" value="0" oninput="calculateTaxReport()" class="w-24 bg-themeCard border border-themeBorder rounded-lg px-2 py-1 text-right text-xs font-semibold focus:outline-none">
+                        </div>
+                        <div class="flex items-center justify-between bg-themeSub/50 p-2 rounded-xl sm:col-span-2">
+                            <span class="text-[11px] text-themeMuted">ลดหย่อยอื่นๆ (เช่น ดอกเบี้ยบ้าน, บริจาค)</span>
+                            <input type="number" id="deductOther" value="0" oninput="calculateTaxReport()" class="w-32 bg-themeCard border border-themeBorder rounded-lg px-2 py-1 text-right text-xs font-semibold focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Withholding Tax Input -->
+                <div class="glass-card p-4 rounded-2xl space-y-2">
+                    <h4 class="text-xs font-bold text-themeText flex items-center gap-1.5">
+                        <i class="fa-solid fa-receipt text-amber-600"></i> ภาษีที่บริษัทหัก ณ ที่จ่ายไปแล้ว
+                    </h4>
+                    <div class="flex items-center justify-between pt-1">
+                        <span class="text-xs text-themeMuted">ระบุจำนวนเงินภาษีที่ถูกหักไว้แล้วตลอดปี</span>
+                        <input type="number" id="taxWithheld" value="0" oninput="calculateTaxReport()" class="w-32 bg-themeSub border border-themeBorder rounded-xl px-3 py-1.5 text-right text-xs font-bold text-amber-600 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Result Card -->
+                <div class="glass-card p-4 rounded-2xl space-y-3 bg-amber-500/5 border-amber-500/30">
+                    <h4 class="text-xs font-bold text-amber-600 flex items-center gap-1.5">
+                        <i class="fa-solid fa-calculator"></i> ผลการคำนวณภาษีสุทธิ
+                    </h4>
+                    <div class="grid grid-cols-2 gap-3 text-xs">
+                        <div class="bg-themeCard p-2.5 rounded-xl border border-themeBorder">
+                            <span class="text-[10px] text-themeMuted">เงินได้สุทธิ (หลังหักค่าใช้จ่าย/ลดหย่อย)</span>
+                            <p id="resNetIncome" class="font-bold text-themeText">฿0.00</p>
+                        </div>
+                        <div class="bg-themeCard p-2.5 rounded-xl border border-themeBorder">
+                            <span class="text-[10px] text-themeMuted">อัตราภาษีเฉลี่ยโดยประมาณ</span>
+                            <p id="resAvgTaxRate" class="font-bold text-amber-600">0%</p>
+                        </div>
+                        <div class="bg-themeCard p-2.5 rounded-xl border border-themeBorder">
+                            <span class="text-[10px] text-themeMuted">ขั้นบันไดภาษีสูงสุด</span>
+                            <p id="resTaxBracket" class="font-bold text-themeText">0% (0 - 150,000 ยกเว้น)</p>
+                        </div>
+                        <div class="bg-themeCard p-2.5 rounded-xl border border-themeBorder">
+                            <span class="text-[10px] text-themeMuted" id="resTaxPayOrRefundLabel">ภาษีที่ต้องจ่ายเพิ่ม / ได้คืน</span>
+                            <p id="resTaxPayOrRefund" class="font-bold text-emerald-600">฿0.00</p>
+                        </div>
+                    </div>
+
+                    <!-- Tax Bracket Progress Bar & Advice -->
+                    <div class="space-y-1.5 pt-2 border-t border-themeBorder">
+                        <div class="flex justify-between text-[11px]">
+                            <span class="text-themeMuted">สถานะบันไดภาษีปัจจุบัน</span>
+                            <span id="taxPositionStatus" class="font-semibold text-amber-600">-</span>
+                        </div>
+                        <div class="w-full bg-themeSub rounded-full h-2.5 p-0.5 overflow-hidden border border-themeBorder">
+                            <div id="taxBracketProgressBar" class="bg-amber-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        <p id="taxNextStepAdvice" class="text-[11px] text-themeMuted italic pt-1"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Add/Edit Transaction Modal -->
     <div id="addTxModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center hidden p-4">
         <div class="bg-themeCard w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 border border-themeBorder space-y-4 max-h-[90vh] overflow-y-auto">
@@ -621,7 +796,12 @@
                 <button onclick="switchBackupTab('backup')" id="btnTabBackup" class="py-2 rounded-xl text-xs font-semibold bg-amber-600 text-white transition z-10">สำรองข้อมูล</button>
                 <button onclick="switchBackupTab('restore')" id="btnTabRestore" class="py-2 rounded-xl text-xs font-semibold text-themeMuted transition z-10">กู้คืนข้อมูล</button>
             </div>
-            <div id="backupTabContent" class="space-y-4">
+            <div id="backupTabContent" class="space-y-3">
+                <!-- 1. Save file locally -->
+                <button onclick="downloadLocalBackup()" class="w-full py-3 rounded-2xl bg-themeSub border border-themeBorder text-amber-600 text-xs font-bold hover:bg-amber-500/10 transition flex items-center justify-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-download"></i> ดาวน์โหลดไฟล์สำรองเก็บไว้ในเครื่อง (.json)
+                </button>
+                <!-- 2. Save file to Google Drive -->
                 <button onclick="backupToGoogleDrive(false)" class="w-full py-3 rounded-2xl bg-amber-600 text-white text-xs font-bold hover:opacity-95 transition flex items-center justify-center gap-2 shadow-sm">
                     <i class="fa-brands fa-google"></i> สำรองข้อมูลขึ้น Google Drive
                 </button>
@@ -747,6 +927,10 @@
             if (calPicker && !calPicker.value) {
                 calPicker.value = new Date().toISOString().slice(0, 7);
             }
+            const sumPicker = document.getElementById('sumReportMonthPicker');
+            if (sumPicker && !sumPicker.value) {
+                sumPicker.value = new Date().toISOString().slice(0, 7);
+            }
 
             updateGoogleAuthUI();
             loadAllData();
@@ -825,6 +1009,17 @@
             }
         }
 
+        function downloadLocalBackup() {
+            const backupData = { wallets, transactions, debts, monthlyBudget, pin, updatedAt: new Date().toISOString() };
+            const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `MoneyPod_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
         async function backupToGoogleDrive(silent = false) {
             if (!googleAccessToken) { 
                 if (!silent) alert('กรุณาเชื่อมต่อ Google Drive ก่อน'); 
@@ -858,7 +1053,7 @@
                 }
                 if (!silent) alert('สำรองข้อมูลไปยัง Google Drive สำเร็จ!');
             } catch (err) { 
-                if (!silent) alert('เกิดข้อผิดพลาดในการสำรองข้อมูล'); 
+                if (!silent) alert('เกิดข้อผิดพลาดในการสำรองข้อมูลขึ้น Google Drive'); 
             }
         }
 
@@ -885,7 +1080,7 @@
                     loadAllData();
                     if (!silent) alert('ดึงข้อมูลจาก Google Drive สำเร็จ!');
                 } else { 
-                    if (!silent) alert('ไม่พบไฟล์สำรองข้อมูล'); 
+                    if (!silent) alert('ไม่พบไฟล์สำรองข้อมูลบน Google Drive'); 
                 }
             } catch (e) { 
                 if (!silent) alert('เกิดข้อผิดพลาดในการดึงข้อมูล'); 
@@ -934,6 +1129,238 @@
                 renderCalendar(); 
                 initChart(); 
                 renderAnnualBarChart();
+            }
+        }
+
+        function openSummaryReportModal() {
+            openModal('summaryReportModal');
+            renderSummaryMonthView();
+            calculateTaxReport();
+        }
+
+        function switchSummarySubTab(sub) {
+            const btnM = document.getElementById('btnSumSubMonth');
+            const btnT = document.getElementById('btnSumSubTax');
+            const cM = document.getElementById('sumSubTabMonth');
+            const cT = document.getElementById('sumSubTabTax');
+            if (sub === 'month') {
+                btnM.className = "py-2 rounded-xl text-xs font-semibold bg-amber-600 text-white transition";
+                btnT.className = "py-2 rounded-xl text-xs font-semibold text-themeMuted transition";
+                cM.classList.remove('hidden');
+                cT.classList.add('hidden');
+                renderSummaryMonthView();
+            } else {
+                btnT.className = "py-2 rounded-xl text-xs font-semibold bg-amber-600 text-white transition";
+                btnM.className = "py-2 rounded-xl text-xs font-semibold text-themeMuted transition";
+                cT.classList.remove('hidden');
+                cM.classList.add('hidden');
+                calculateTaxReport();
+            }
+        }
+
+        let sumMonthTrendChartObj = null;
+        function renderSummaryMonthView() {
+            const picker = document.getElementById('sumReportMonthPicker');
+            const val = picker && picker.value ? picker.value : new Date().toISOString().slice(0, 7);
+            const [y, m] = val.split('-').map(Number);
+
+            let mInc = 0, mExp = 0;
+            transactions.forEach(t => {
+                if (t.date) {
+                    const d = new Date(t.date);
+                    if (d.getFullYear() === y && (d.getMonth() + 1) === m) {
+                        if (t.type === 'income') mInc += t.amount;
+                        if (t.type === 'expense') mExp += t.amount;
+                    }
+                }
+            });
+
+            const net = mInc - mExp;
+            const daysInMonth = new Date(y, m, 0).getDate();
+            const dailyAvg = mExp / daysInMonth;
+
+            document.getElementById('sumNetMonth').innerText = `฿${net.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+            document.getElementById('sumDailyAvgExpense').innerText = `฿${dailyAvg.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+
+            // Render monthly table & chart
+            let monthlyData = Array(12).fill(0).map(() => ({ inc: 0, exp: 0 }));
+            transactions.forEach(t => {
+                if (t.date) {
+                    const d = new Date(t.date);
+                    if (d.getFullYear() === y) {
+                        const monthIdx = d.getMonth();
+                        if (t.type === 'income') monthlyData[monthIdx].inc += t.amount;
+                        if (t.type === 'expense') monthlyData[monthIdx].exp += t.amount;
+                    }
+                }
+            });
+
+            const tbody = document.getElementById('sumMonthTableBody');
+            tbody.innerHTML = '';
+            const monthNames = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+            
+            monthlyData.forEach((item, idx) => {
+                const s = item.inc - item.exp;
+                tbody.innerHTML += `
+                    <tr class="border-b border-themeBorder">
+                        <td class="p-2 font-medium text-themeText">${monthNames[idx]}</td>
+                        <td class="p-2 text-emerald-600">+${item.inc.toLocaleString()}</td>
+                        <td class="p-2 text-rose-500">-${item.exp.toLocaleString()}</td>
+                        <td class="p-2 font-semibold ${s >= 0 ? 'text-emerald-600' : 'text-rose-500'}">${s.toLocaleString()}</td>
+                    </tr>
+                `;
+            });
+
+            // Trend chart
+            const ctxEl = document.getElementById('sumMonthTrendChart');
+            if (ctxEl) {
+                if (sumMonthTrendChartObj) sumMonthTrendChartObj.destroy();
+                sumMonthTrendChartObj = new Chart(ctxEl.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'],
+                        datasets: [
+                            { label: 'รายรับ', data: monthlyData.map(i => i.inc), borderColor: '#10b981', tension: 0.3, fill: false },
+                            { label: 'รายจ่าย', data: monthlyData.map(i => i.exp), borderColor: '#f43f5e', tension: 0.3, fill: false }
+                        ]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'bottom' } } }
+                });
+            }
+        }
+
+        function calculateTaxReport() {
+            const yearSelect = document.getElementById('taxYearSelect');
+            const targetYear = yearSelect ? parseInt(yearSelect.value) : new Date().getFullYear();
+
+            let totalInc = 0, totalExp = 0;
+            transactions.forEach(t => {
+                if (t.date) {
+                    const d = new Date(t.date);
+                    if (d.getFullYear() === targetYear) {
+                        if (t.type === 'income') totalInc += t.amount;
+                        if (t.type === 'expense') totalExp += t.amount;
+                    }
+                }
+            });
+
+            document.getElementById('taxTotalIncome').innerText = `฿${totalInc.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+            document.getElementById('taxTotalExpense').innerText = `฿${totalExp.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+
+            // Deductions
+            const dPersonal = parseFloat(document.getElementById('deductPersonal').value) || 0;
+            const dSocial = parseFloat(document.getElementById('deductSocial').value) || 0;
+            const dProvident = parseFloat(document.getElementById('deductProvident').value) || 0;
+            const dInsurance = parseFloat(document.getElementById('deductInsurance').value) || 0;
+            const dOther = parseFloat(document.getElementById('deductOther').value) || 0;
+            const totalDeduction = dPersonal + dSocial + dProvident + dInsurance + dOther;
+            document.getElementById('taxTotalDeductionText').innerText = `รวม ฿${totalDeduction.toLocaleString()}`;
+
+            // Expenses deduction (e.g. 50% of income up to 100,000 for 40(1),(2))
+            const expenseDeduction = Math.min(totalInc * 0.5, 100000);
+            const netIncome = Math.max(0, totalInc - expenseDeduction - totalDeduction);
+
+            // Progressive Tax Calculation (Thailand Personal Income Tax Brackets)
+            let taxToPay = 0;
+            let currentBracketRate = 0;
+            let nextBracketTarget = 150000;
+            let bracketName = "0 - 150,000 (ยกเว้น)";
+
+            if (netIncome > 5000000) {
+                taxToPay += (netIncome - 5000000) * 0.35;
+                taxToPay += (5000000 - 2000000) * 0.30;
+                taxToPay += (2000000 - 1000000) * 0.25;
+                taxToPay += (1000000 - 750000) * 0.20;
+                taxToPay += (750000 - 500000) * 0.15;
+                taxToPay += (500000 - 300000) * 0.10;
+                taxToPay += (300000 - 150000) * 0.05;
+                currentBracketRate = 35;
+                bracketName = "มากกว่า 5,000,000 บาท (35%)";
+                nextBracketTarget = netIncome;
+            } else if (netIncome > 2000000) {
+                taxToPay += (netIncome - 2000000) * 0.30;
+                taxToPay += (2000000 - 1000000) * 0.25;
+                taxToPay += (1000000 - 750000) * 0.20;
+                taxToPay += (750000 - 500000) * 0.15;
+                taxToPay += (500000 - 300000) * 0.10;
+                taxToPay += (300000 - 150000) * 0.05;
+                currentBracketRate = 30;
+                bracketName = "2,000,001 - 5,000,000 บาท (30%)";
+                nextBracketTarget = 5000000;
+            } else if (netIncome > 1000000) {
+                taxToPay += (netIncome - 1000000) * 0.25;
+                taxToPay += (1000000 - 750000) * 0.20;
+                taxToPay += (750000 - 500000) * 0.15;
+                taxToPay += (500000 - 300000) * 0.10;
+                taxToPay += (300000 - 150000) * 0.05;
+                currentBracketRate = 25;
+                bracketName = "1,000,001 - 2,000,000 บาท (25%)";
+                nextBracketTarget = 2000000;
+            } else if (netIncome > 750000) {
+                taxToPay += (netIncome - 750000) * 0.20;
+                taxToPay += (750000 - 500000) * 0.15;
+                taxToPay += (500000 - 300000) * 0.10;
+                taxToPay += (300000 - 150000) * 0.05;
+                currentBracketRate = 20;
+                bracketName = "750,001 - 1,000,000 บาท (20%)";
+                nextBracketTarget = 1000000;
+            } else if (netIncome > 500000) {
+                taxToPay += (netIncome - 500000) * 0.15;
+                taxToPay += (500000 - 300000) * 0.10;
+                taxToPay += (300000 - 150000) * 0.05;
+                currentBracketRate = 15;
+                bracketName = "500,001 - 750,000 บาท (15%)";
+                nextBracketTarget = 750000;
+            } else if (netIncome > 300000) {
+                taxToPay += (netIncome - 300000) * 0.10;
+                taxToPay += (300000 - 150000) * 0.05;
+                currentBracketRate = 10;
+                bracketName = "300,001 - 500,000 บาท (10%)";
+                nextBracketTarget = 500000;
+            } else if (netIncome > 150000) {
+                taxToPay += (netIncome - 150000) * 0.05;
+                currentBracketRate = 5;
+                bracketName = "150,001 - 300,000 บาท (5%)";
+                nextBracketTarget = 300000;
+            } else {
+                taxToPay = 0;
+                currentBracketRate = 0;
+                bracketName = "0 - 150,000 บาท (ยกเว้นภาษี)";
+                nextBracketTarget = 150000;
+            }
+
+            const taxWithheld = parseFloat(document.getElementById('taxWithheld').value) || 0;
+            const finalDifference = taxToPay - taxWithheld;
+            const avgRate = netIncome > 0 ? (taxToPay / netIncome) * 100 : 0;
+
+            document.getElementById('resNetIncome').innerText = `฿${netIncome.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+            document.getElementById('resAvgTaxRate').innerText = `${avgRate.toFixed(2)}%`;
+            document.getElementById('resTaxBracket').innerText = `${currentBracketRate}% (${bracketName})`;
+
+            const refLabel = document.getElementById('resTaxPayOrRefundLabel');
+            const refVal = document.getElementById('resTaxPayOrRefund');
+            if (finalDifference >= 0) {
+                refLabel.innerText = "ภาษีที่ต้องจ่ายเพิ่มสุทธิ";
+                refVal.innerText = `฿${finalDifference.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+                refVal.className = "font-bold text-rose-500";
+            } else {
+                refLabel.innerText = "ภาษีที่ได้รับคืนสุทธิ";
+                refVal.innerText = `฿${Math.abs(finalDifference).toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+                refVal.className = "font-bold text-emerald-600";
+            }
+
+            // Progress & advice
+            let progressPct = Math.min(100, (netIncome / (nextBracketTarget || 1)) * 100);
+            if (currentBracketRate === 35) progressPct = 100;
+            document.getElementById('taxBracketProgressBar').style.width = `${progressPct}%`;
+            document.getElementById('taxPositionStatus').innerText = `รายได้สุทธิอยู่ในขั้นภาษี ${currentBracketRate}%`;
+
+            let nextRate = currentBracketRate === 0 ? 5 : (currentBracketRate === 5 ? 10 : (currentBracketRate === 10 ? 15 : (currentBracketRate === 15 ? 20 : (currentBracketRate === 20 ? 25 : (currentBracketRate === 25 ? 30 : 35)))));
+            if (currentBracketRate < 35) {
+                let diffToNext = nextBracketTarget - netIncome;
+                document.getElementById('taxNextStepAdvice').innerText = `💡 อีก ฿${diffToNext.toLocaleString()} รายได้สุทธิจะขยับขึ้นไปแตะขั้นบันไดภาษี ${nextRate}%`;
+            } else {
+                document.getElementById('taxNextStepAdvice').innerText = `🔥 คุณอยู่ในขั้นภาษีสูงสุด (35%) แล้ว`;
             }
         }
 
