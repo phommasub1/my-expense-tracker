@@ -664,6 +664,9 @@
         let googleUserEmail = localStorage.getItem('MP_G_USER_EMAIL') || null;
 
         let pin = localStorage.getItem('MP_PIN') || '1234';
+        if (!localStorage.getItem('MP_PIN')) {
+            localStorage.setItem('MP_PIN', '1234');
+        }
         let enteredPin = '';
         let isPrivacy = false;
         let currentTxType = 'expense';
@@ -682,9 +685,12 @@
         window.addEventListener('DOMContentLoaded', () => {
             const savedTheme = localStorage.getItem('MP_THEME') || 'default';
             setTheme(savedTheme);
-            document.getElementById('currentPinText')?.innerText = pin;
-            document.getElementById('monthlyBudgetInput').value = monthlyBudget;
-            document.getElementById('txDate').valueAsDate = new Date();
+            const pinTextEl = document.getElementById('currentPinText');
+            if (pinTextEl) pinTextEl.innerText = pin;
+            const budgetInputEl = document.getElementById('monthlyBudgetInput');
+            if (budgetInputEl) budgetInputEl.value = monthlyBudget;
+            const txDateEl = document.getElementById('txDate');
+            if (txDateEl) txDateEl.valueAsDate = new Date();
             
             updateGoogleAuthUI();
             loadAllData();
@@ -1093,7 +1099,8 @@
         function renderCalendar() {
             const grid = document.getElementById('calendarGrid');
             grid.innerHTML = '';
-            const monthVal = document.getElementById('calendarMonthPicker').value || new Date().toISOString().slice(0, 7);
+            const monthInputEl = document.getElementById('calendarMonthPicker');
+            const monthVal = (monthInputEl && monthInputEl.value) ? monthInputEl.value : new Date().toISOString().slice(0, 7);
             const [year, month] = monthVal.split('-').map(Number);
             const firstDay = new Date(year, month - 1, 1).getDay();
             const daysInMonth = new Date(year, month, 0).getDate();
@@ -1116,7 +1123,9 @@
 
         let categoryChartObj = null;
         function initChart() {
-            const ctx = document.getElementById('categoryChart').getContext('2d');
+            const ctxEl = document.getElementById('categoryChart');
+            if (!ctxEl) return;
+            const ctx = ctxEl.getContext('2d');
             let catMap = {};
             categories.forEach(c => catMap[c] = 0);
             transactions.forEach(t => { 
@@ -1139,6 +1148,7 @@
 
         function renderDebts() {
             const dContainer = document.getElementById('debtList');
+            if (!dContainer) return;
             dContainer.innerHTML = debts.length === 0 ? '<p class="text-xs text-themeMuted text-center py-2">ไม่มีรายการยืม-คืน</p>' : '';
             debts.forEach(d => {
                 dContainer.innerHTML += `
@@ -1311,12 +1321,13 @@
             });
         }
         function checkPin() {
-            if (enteredPin === pin) {
+            const currentPin = localStorage.getItem('MP_PIN') || '1234';
+            if (enteredPin === currentPin) {
                 document.getElementById('pinOverlay').classList.add('hidden');
                 enteredPin = ''; 
                 updatePinDots();
             } else { 
-                alert('รหัส PIN ไม่ถูกต้อง'); 
+                alert('รหัส PIN ไม่ถูกต้อง (รหัสเริ่มต้น: 1234)'); 
                 enteredPin = ''; 
                 updatePinDots(); 
             }
