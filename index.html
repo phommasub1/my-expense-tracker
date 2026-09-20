@@ -47,8 +47,9 @@
     <!-- jsPDF & autoTable for PDF Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-    <!-- Google Identity Services (OAuth 2.0) -->
+    <!-- Google Identity Services (OAuth 2.0) & GAPI -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js" async defer></script>
     <!-- Tesseract OCR for Slip Scanning -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
@@ -142,7 +143,6 @@
             transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        /* Safe area spacing for mobile notches & navigation bar */
         .pt-safe { padding-top: max(1.25rem, env(safe-area-inset-top)); }
         .pb-safe { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
 
@@ -189,6 +189,7 @@
 </head>
 <body class="min-h-screen flex flex-col justify-between antialiased selection:bg-amber-200 selection:text-amber-900 pb-28">
 
+    <!-- PIN Overlay Lock -->
     <div id="pinOverlay" class="fixed inset-0 z-50 bg-themeBg flex flex-col items-center justify-center p-6 space-y-6">
         <div class="text-center space-y-2">
             <div class="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto text-amber-600 text-2xl shadow-sm">
@@ -225,6 +226,7 @@
         </div>
     </div>
 
+    <!-- Header Bar -->
     <header class="sticky top-0 z-30 bg-themeBg/90 backdrop-blur-md px-5 pt-safe pb-3 flex items-center justify-between border-b border-themeBorder shadow-sm">
         <div class="flex items-center space-x-3">
             <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-600 p-0.5 shadow-md">
@@ -234,32 +236,33 @@
             </div>
             <div>
                 <h1 class="text-base font-bold text-themeText">MoneyPod Cute</h1>
-                <p class="text-[10px] text-themeMuted">บันทึกรายรับ-รายจ่ายส่วนตัว</p>
+                <p class="text-[10px] text-themeMuted flex items-center gap-1">
+                    <span id="userAccountEmail">ไม่ได้เชื่อมต่อ Google</span>
+                </p>
             </div>
         </div>
 
         <div class="flex items-center space-x-2">
-            <!-- Theme Selector Modal Trigger Button -->
-            <button onclick="openModal('themeModal')" class="p-2.5 rounded-xl bg-themeCard border border-themeBorder text-themeText hover:text-amber-600 transition shadow-sm" title="เลือกธีม">
+            <!-- Google Login Button -->
+            <button onclick="handleGoogleAuth()" id="googleAuthBtn" class="p-2.5 rounded-xl bg-themeCard border border-themeBorder text-amber-600 hover:bg-amber-500/10 transition flex items-center space-x-1.5 text-xs font-medium shadow-sm">
+                <i class="fa-brands fa-google text-sm"></i>
+                <span id="googleBtnText" class="hidden sm:inline">เชื่อมต่อ Google</span>
+            </button>
+            <!-- Theme Trigger -->
+            <button onclick="openModal('themeModal')" class="p-2.5 rounded-xl bg-themeCard border border-themeBorder text-themeText hover:text-amber-600 transition shadow-sm">
                 <i class="fa-solid fa-palette text-amber-600"></i>
             </button>
             <!-- Privacy Toggle -->
-            <button onclick="togglePrivacy()" id="privacyBtn" class="p-2.5 rounded-xl bg-themeCard border border-themeBorder text-themeText hover:text-amber-600 transition shadow-sm" title="ซ่อน/แสดง ยอดเงิน">
+            <button onclick="togglePrivacy()" id="privacyBtn" class="p-2.5 rounded-xl bg-themeCard border border-themeBorder text-themeText hover:text-amber-600 transition shadow-sm">
                 <i class="fa-solid fa-eye"></i>
-            </button>
-            <!-- OCR Scanner Button -->
-            <button onclick="openScanModal()" class="p-2.5 rounded-xl bg-themeCard border border-themeBorder text-amber-600 hover:bg-amber-500/10 transition flex items-center space-x-1.5 text-xs font-medium shadow-sm">
-                <i class="fa-solid fa-qrcode"></i>
-                <span class="hidden sm:inline">สแกนสลิป</span>
             </button>
         </div>
     </header>
 
     <main class="px-4 pt-4 max-w-lg mx-auto w-full flex-1">
 
-        <!-- TAB 1: HOME DASHBOARD -->
+        <!-- TAB 1: DASHBOARD -->
         <section id="tab-home" class="tab-content space-y-5">
-            <!-- Net Worth Card -->
             <div class="glass-card rounded-3xl p-5 relative overflow-hidden shadow-sm">
                 <div class="flex justify-between items-start mb-2">
                     <span class="text-xs text-themeMuted font-light flex items-center gap-1.5">
@@ -273,7 +276,6 @@
                     <span class="balance-text text-amber-600" id="totalNetWorth">฿0.00</span>
                 </div>
 
-                <!-- Monthly Income/Expense Pill Bar -->
                 <div class="grid grid-cols-2 gap-3 pt-3 border-t border-themeBorder">
                     <div class="flex items-center space-x-3 bg-themeSub/50 p-2.5 rounded-2xl">
                         <div class="w-8 h-8 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-600 text-xs">
@@ -296,7 +298,6 @@
                 </div>
             </div>
 
-            <!-- Overall Budget Power Bar -->
             <div class="glass-card rounded-2xl p-4 space-y-2">
                 <div class="flex justify-between items-center text-xs">
                     <span class="text-themeText font-medium flex items-center gap-1.5">
@@ -313,7 +314,6 @@
                 </div>
             </div>
 
-            <!-- Quick Wallet Scroll Carousel -->
             <div class="space-y-2">
                 <div class="flex justify-between items-center">
                     <h3 class="text-xs font-bold text-themeMuted tracking-wide uppercase flex items-center gap-1.5">
@@ -322,11 +322,9 @@
                     <button onclick="switchTab('wallets')" class="text-[11px] text-amber-600 hover:underline">จัดการกระเป๋า <i class="fa-solid fa-chevron-right text-[9px]"></i></button>
                 </div>
                 <div id="walletCarousel" class="flex space-x-3 overflow-x-auto no-scrollbar pb-1 pt-1">
-                    <!-- Dynamic Wallet Badges -->
                 </div>
             </div>
 
-            <!-- Recent Transactions List -->
             <div class="space-y-3">
                 <div class="flex justify-between items-center">
                     <h3 class="text-xs font-bold text-themeMuted tracking-wide uppercase flex items-center gap-1.5">
@@ -335,12 +333,11 @@
                     <span class="text-[11px] text-themeMuted" id="txCountText">0 รายการ</span>
                 </div>
                 <div id="recentTxList" class="space-y-2.5">
-                    <!-- Dynamic Transactions Render Here -->
                 </div>
             </div>
         </section>
 
-        <!-- TAB 2: WALLETS & TRANSFERS -->
+        <!-- TAB 2: WALLETS -->
         <section id="tab-wallets" class="tab-content space-y-5 hidden">
             <div class="flex justify-between items-center">
                 <div>
@@ -352,7 +349,6 @@
                 </button>
             </div>
 
-            <!-- Transfer Money Action Card -->
             <div class="glass-card rounded-2xl p-4 flex items-center justify-between">
                 <div class="flex items-center space-x-3">
                     <div class="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-600">
@@ -368,13 +364,11 @@
                 </button>
             </div>
 
-            <!-- Wallets Grid -->
             <div id="fullWalletGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <!-- Dynamic Render -->
             </div>
         </section>
 
-        <!-- TAB 3: CALENDAR & ANALYTICS -->
+        <!-- TAB 3: CALENDAR -->
         <section id="tab-calendar" class="tab-content space-y-5 hidden">
             <div class="flex justify-between items-center">
                 <div>
@@ -395,7 +389,6 @@
                     <span class="text-sky-500">ส</span>
                 </div>
                 <div id="calendarGrid" class="grid grid-cols-7 gap-1 text-center">
-                    <!-- Dynamic Calendar Grid -->
                 </div>
             </div>
 
@@ -409,7 +402,7 @@
             </div>
         </section>
 
-        <!-- TAB 4: DEBTS & INSTALLMENTS -->
+        <!-- TAB 4: DEBTS -->
         <section id="tab-debts" class="tab-content space-y-5 hidden">
             <div class="flex justify-between items-center">
                 <div>
@@ -426,32 +419,42 @@
                 </div>
             </div>
 
-            <!-- Debt / Loans Section -->
             <div class="space-y-3">
                 <h3 class="text-xs font-bold text-themeMuted flex items-center gap-1.5">
                     <i class="fa-solid fa-hand-holding-dollar text-rose-500"></i> รายการยืม-คืนเงิน
                 </h3>
                 <div id="debtList" class="space-y-2.5">
-                    <!-- Dynamic Debts -->
                 </div>
             </div>
 
-            <!-- Installment Purchases Section -->
             <div class="space-y-3 pt-2">
                 <h3 class="text-xs font-bold text-themeMuted flex items-center gap-1.5">
                     <i class="fa-solid fa-credit-card text-amber-500"></i> รายการผ่อนชำระสินค้า
                 </h3>
                 <div id="installmentList" class="space-y-2.5">
-                    <!-- Dynamic Installments -->
                 </div>
             </div>
         </section>
 
-        <!-- TAB 5: SETTINGS & BACKUP -->
+        <!-- TAB 5: SETTINGS -->
         <section id="tab-settings" class="tab-content space-y-5 hidden">
             <div>
                 <h2 class="text-lg font-bold text-themeText">ตั้งค่า & สำรองข้อมูล</h2>
-                <p class="text-xs text-themeMuted">จัดการความปลอดภัย ส่งออกข้อมูล และ Google Client ID</p>
+                <p class="text-xs text-themeMuted">จัดการความปลอดภัย การเชื่อมต่อ Google Drive และการส่งออกข้อมูล</p>
+            </div>
+
+            <!-- Google Account Cloud Sync Control -->
+            <div class="glass-card rounded-2xl p-4 space-y-3 border border-amber-500/30 shadow-sm">
+                <h3 class="text-xs font-bold text-themeMuted flex items-center gap-1.5">
+                    <i class="fa-brands fa-google text-amber-600"></i> Google Account Cloud Sync
+                </h3>
+                <p class="text-[11px] text-themeMuted">เชื่อมต่อบัญชี Gmail เดียวกันบนมือถือและคอมพิวเตอร์ เพื่อดึงข้อมูลอัตโนมัติ</p>
+                <div class="flex items-center justify-between pt-1">
+                    <span id="settingsGoogleStatus" class="text-xs font-semibold text-rose-500">ยังไม่ได้เชื่อมต่อ</span>
+                    <button onclick="handleGoogleAuth()" class="px-4 py-2 rounded-xl bg-amber-600 text-white text-xs font-bold hover:opacity-90 transition flex items-center gap-2 shadow-sm">
+                        <i class="fa-brands fa-google"></i> เชื่อมต่อ Google Drive
+                    </button>
+                </div>
             </div>
 
             <!-- Security PIN Settings -->
@@ -470,27 +473,7 @@
                 </div>
             </div>
 
-            <!-- Google OAuth Client ID Setup -->
-            <div class="glass-card rounded-2xl p-4 space-y-3">
-                <h3 class="text-xs font-bold text-themeMuted flex items-center gap-1.5">
-                    <i class="fa-brands fa-google text-amber-600"></i> Google Integration (OAuth Client ID)
-                </h3>
-                <div class="space-y-2">
-                    <label class="text-[11px] text-themeMuted block">Google OAuth Client ID</label>
-                    <input type="text" id="googleClientIdInput" placeholder="xxxxxx-xxxxxx.apps.googleusercontent.com" class="w-full bg-themeSub border border-themeBorder rounded-xl px-3 py-2 text-xs text-themeText focus:outline-none focus:border-amber-600">
-                    <div class="flex gap-2">
-                        <button onclick="saveGoogleClientId()" class="px-3.5 py-1.5 rounded-xl bg-amber-600 text-white text-xs font-semibold hover:opacity-90 transition">
-                            บันทึก ID
-                        </button>
-                        <button onclick="connectGoogleAccount()" class="px-3.5 py-1.5 rounded-xl bg-themeSub border border-themeBorder text-xs text-themeText hover:text-amber-600 transition flex items-center gap-1.5">
-                            <i class="fa-brands fa-google"></i> เชื่อมต่อบัญชี
-                        </button>
-                    </div>
-                    <p class="text-[10px] text-themeMuted" id="googleAuthStatus">สถานะ: ยังไม่ได้เชื่อมต่อ</p>
-                </div>
-            </div>
-
-            <!-- Set Monthly Budget Ceiling -->
+            <!-- Monthly Budget Setting -->
             <div class="glass-card rounded-2xl p-4 space-y-3">
                 <h3 class="text-xs font-bold text-themeMuted flex items-center gap-1.5">
                     <i class="fa-solid fa-bullseye text-emerald-600"></i> ตั้งค่าเพดานงบประมาณรายเดือน
@@ -503,7 +486,7 @@
                 </div>
             </div>
 
-            <!-- Data Export & Backup Actions Header Buttons -->
+            <!-- Data Center -->
             <div class="glass-card rounded-2xl p-4 space-y-3">
                 <h3 class="text-xs font-bold text-themeMuted flex items-center gap-1.5">
                     <i class="fa-solid fa-database text-amber-600"></i> ศูนย์จัดการข้อมูล (Data Center)
@@ -534,7 +517,7 @@
         </button>
     </div>
 
-    <!-- Bottom Navigation Glass Bar with Safe Area Padding -->
+    <!-- Bottom Navigation Glass Bar -->
     <nav class="fixed bottom-0 left-0 right-0 z-40 glass-nav px-3 pt-2 pb-safe">
         <div class="max-w-lg mx-auto flex justify-around items-center">
             <button onclick="switchTab('home')" id="nav-home" class="nav-item nav-active flex flex-col items-center space-y-1 text-themeMuted text-[10px] transition">
@@ -560,1579 +543,672 @@
         </div>
     </nav>
 
-    <!-- MODAL 1: ADD TRANSACTION -->
-    <div id="addTxModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center hidden">
-        <div class="bg-themeCard w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 border border-themeBorder space-y-4 max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center pb-2 border-b border-themeBorder">
-                <h3 class="text-base font-bold text-themeText flex items-center gap-2">
-                    <i class="fa-solid fa-pen-to-square text-amber-600"></i> บันทึกรายการใหม่
-                </h3>
-                <button onclick="closeModal('addTxModal')" class="text-themeMuted hover:text-themeText"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-
-            <div class="grid grid-cols-3 gap-2 bg-themeSub p-1 rounded-2xl">
-                <button onclick="setTxType('expense')" id="btnTypeExpense" class="py-2 rounded-xl text-xs font-semibold bg-rose-500 text-white transition">รายจ่าย</button>
-                <button onclick="setTxType('income')" id="btnTypeIncome" class="py-2 rounded-xl text-xs font-semibold text-themeMuted hover:text-themeText transition">รายรับ</button>
-                <button onclick="openScanModal(); closeModal('addTxModal');" class="py-2 rounded-xl text-xs font-semibold text-amber-600 bg-amber-500/10 transition flex items-center justify-center gap-1">
-                    <i class="fa-solid fa-qrcode"></i> สแกนสลิป
-                </button>
-            </div>
-
-            <div class="space-y-3">
-                <div>
-                    <label class="text-[11px] text-themeMuted block mb-1">จำนวนเงิน (บาท)</label>
-                    <input type="number" id="txAmount" placeholder="0.00" class="w-full bg-themeSub border border-themeBorder rounded-2xl px-4 py-3 text-xl font-bold text-amber-600 focus:outline-none focus:border-amber-600">
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="text-[11px] text-themeMuted block mb-1">กระเป๋าเงิน</label>
-                        <select id="txWalletSelect" class="w-full bg-themeSub border border-themeBorder rounded-xl px-3 py-2 text-xs text-themeText focus:outline-none">
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-[11px] text-themeMuted block mb-1">หมวดหมู่</label>
-                        <select id="txCategorySelect" class="w-full bg-themeSub border border-themeBorder rounded-xl px-3 py-2 text-xs text-themeText focus:outline-none">
-                        </select>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="text-[11px] text-themeMuted block mb-1">วันที่</label>
-                        <input type="date" id="txDate" class="w-full bg-themeSub border border-themeBorder rounded-xl px-3 py-2 text-xs text-themeText focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="text-[11px] text-themeMuted block mb-1">แท็ก (เช่น #ทริปญี่ปุ่น)</label>
-                        <input type="text" id="txTag" placeholder="#แท็ก" class="w-full bg-themeSub border border-themeBorder rounded-xl px-3 py-2 text-xs text-themeText focus:outline-none">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="text-[11px] text-themeMuted block mb-1">บันทึกเพิ่มเติม (Note)</label>
-                    <input type="text" id="txNote" placeholder="รายละเอียด..." class="w-full bg-themeSub border border-themeBorder rounded-xl px-3 py-2 text-xs text-themeText focus:outline-none">
-                </div>
-            </div>
-
-            <button onclick="saveTransaction()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-white text-sm font-bold shadow-md hover:opacity-95 transition">
-                บันทึกรายการ
-            </button>
-        </div>
-    </div>
-
-    <!-- MODAL: ADD / EDIT WALLET -->
-    <div id="addWalletModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <!-- MODALS SECTION -->
+    <!-- Theme Selection Modal -->
+    <div id="themeModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
         <div class="bg-themeCard w-full max-w-sm rounded-3xl p-5 border border-themeBorder space-y-4">
-            <div class="flex justify-between items-center pb-2 border-b border-themeBorder">
-                <h3 class="text-sm font-bold text-themeText" id="walletModalTitle">เพิ่มกระเป๋าเงินใหม่</h3>
-                <button onclick="closeModal('addWalletModal')" class="text-themeMuted hover:text-themeText"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-
-            <input type="hidden" id="editWalletId" value="">
-            <div class="space-y-3 text-xs">
-                <div>
-                    <label class="text-themeMuted block mb-1">ชื่อบัญชี / กระเป๋า</label>
-                    <input type="text" id="newWalletName" placeholder="เช่น กสิกร, K-Bank, เงินสด" class="w-full bg-themeSub border border-themeBorder rounded-xl px-3 py-2 text-themeText">
-                </div>
-                <div>
-                    <label class="text-themeMuted block mb-1">ประเภทบัญชี</label>
-                    <select id="newWalletType" class="w-full bg-themeSub border border-themeBorder rounded-xl px-3 py-2 text-themeText">
-                        <option value="bank">ธนาคาร (Bank)</option>
-                        <option value="cash">เงินสด (Cash)</option>
-                        <option value="credit">บัตรเครดิต (Credit Card)</option>
-                        <option value="ewallet">e-Wallet (TrueMoney/Shopee)</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="text-themeMuted block mb-1">ยอดเงินคงเหลือ / ยอดเริ่มต้น</label>
-                    <input type="number" id="newWalletBalance" placeholder="0.00" class="w-full bg-themeSub border border-themeBorder rounded-xl px-3 py-2 text-themeText">
-                </div>
-            </div>
-
-            <button onclick="saveNewWallet()" class="w-full py-2.5 rounded-xl bg-amber-600 text-white text-xs font-bold hover:opacity-90 shadow-sm">
-                บันทึกกระเป๋าเงิน
-            </button>
-        </div>
-    </div>
-
-    <!-- MODAL: TRANSFER BETWEEN WALLETS -->
-    <div id="transferModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center hidden">
-        <div class="bg-themeCard w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 border border-themeBorder space-y-4">
             <div class="flex justify-between items-center pb-2 border-b border-themeBorder">
                 <h3 class="text-sm font-bold text-themeText flex items-center gap-2">
-                    <i class="fa-solid fa-right-left text-amber-600"></i> โอนเงินข้ามกระเป๋า
+                    <i class="fa-solid fa-palette text-amber-600"></i> เลือกธีมแอป
                 </h3>
-                <button onclick="closeModal('transferModal')" class="text-themeMuted hover:text-themeText"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <button onclick="closeModal('themeModal')" class="text-themeMuted hover:text-themeText"><i class="fa-solid fa-xmark"></i></button>
             </div>
-
-            <div class="space-y-3">
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="text-[11px] text-themeMuted block mb-1">จากกระเป๋า</label>
-                        <select id="transferFromSelect" class="w-full bg-themeSub border border-themeBorder rounded-xl px-3 py-2 text-xs text-themeText"></select>
-                    </div>
-                    <div>
-                        <label class="text-[11px] text-themeMuted block mb-1">ไปยังกระเป๋า</label>
-                        <select id="transferToSelect" class="w-full bg-themeSub border border-themeBorder rounded-xl px-3 py-2 text-xs text-themeText"></select>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="text-[11px] text-themeMuted block mb-1">จำนวนเงินที่โอน</label>
-                        <input type="number" id="transferAmount" placeholder="0.00" class="w-full bg-themeSub border border-themeBorder rounded-xl px-3 py-2 text-xs text-themeText">
-                    </div>
-                    <div>
-                        <label class="text-[11px] text-themeMuted block mb-1">ค่าธรรมเนียม (ถ้ามี)</label>
-                        <input type="number" id="transferFee" placeholder="0.00" class="w-full bg-themeSub border border-themeBorder rounded-xl px-3 py-2 text-xs text-themeText">
-                    </div>
-                </div>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="setTheme('default')" class="p-3 rounded-2xl border border-amber-500/40 bg-[#fcf8f2] text-[#4a3e2e] text-xs font-bold flex items-center gap-2">
+                    <span class="w-4 h-4 rounded-full bg-amber-500"></span> Cream Gold
+                </button>
+                <button onclick="setTheme('dark')" class="p-3 rounded-2xl border border-slate-700 bg-[#0f141c] text-[#f8f8f2] text-xs font-bold flex items-center gap-2">
+                    <span class="w-4 h-4 rounded-full bg-pink-500"></span> Classic Dark
+                </button>
+                <button onclick="setTheme('green')" class="p-3 rounded-2xl border border-emerald-500/40 bg-[#f2f9f4] text-[#1b4332] text-xs font-bold flex items-center gap-2">
+                    <span class="w-4 h-4 rounded-full bg-emerald-500"></span> Pastel Green
+                </button>
+                <button onclick="setTheme('pink')" class="p-3 rounded-2xl border border-rose-500/40 bg-[#fff5f7] text-[#5c2231] text-xs font-bold flex items-center gap-2">
+                    <span class="w-4 h-4 rounded-full bg-rose-400"></span> Pastel Pink
+                </button>
+                <button onclick="setTheme('purple')" class="p-3 rounded-2xl border border-purple-500/40 bg-[#f8f5ff] text-[#3b2354] text-xs font-bold flex items-center gap-2">
+                    <span class="w-4 h-4 rounded-full bg-purple-500"></span> Pastel Purple
+                </button>
+                <button onclick="setTheme('blue')" class="p-3 rounded-2xl border border-sky-500/40 bg-[#111827] text-[#f3f4f6] text-xs font-bold flex items-center gap-2">
+                    <span class="w-4 h-4 rounded-full bg-sky-400"></span> Steel Blue
+                </button>
             </div>
-
-            <button onclick="executeTransfer()" class="w-full py-2.5 rounded-xl bg-amber-600 text-white text-xs font-bold hover:opacity-90 shadow-sm">
-                ยืนยันการโอนเงิน
-            </button>
         </div>
     </div>
 
-    <!-- MODAL: ADD / EDIT DEBT -->
-    <div id="addDebtModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-        <div class="bg-themeCard w-full max-w-sm rounded-3xl p-5 border border-themeBorder space-y-4">
-            <div class="flex justify-between items-center pb-2 border-b border-themeBorder">
-                <h3 class="text-sm font-bold text-themeText" id="debtModalTitle">เพิ่มรายการยืม-คืนเงิน</h3>
-                <button onclick="closeModal('addDebtModal')" class="text-themeMuted hover:text-themeText"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-
-            <input type="hidden" id="editDebtId" value="">
-            <div class="space-y-3 text-xs">
-                <div>
-                    <label class="text-themeMuted block mb-1">ประเภทรายการ</label>
-                    <select id="debtType" class="w-full bg-themeSub border border-themeBorder rounded-xl px-3 py-2 text-themeText">
-                        <option value="lent">เราให้ยืม (ลูกหนี้ต้องคืนเรา)</option>
-                        <option value="borrowed">เรายืมเขา (เราเป็นหนี้ต้องคืน)</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="text-themeMuted block mb-1">ชื่อบุคคล</label>
-                    <input type="text" id="debtPerson" placeholder="เช่น คุณเอ, เพื่อน B" class="w-full bg-themeSub border border-themeBorder rounded-xl px-3 py-2 text-themeText">
-                </div>
-                <div>
-                    <label class="text-themeMuted block mb-1">ยอดเงิน</label>
-                    <input type="number" id="debtAmount" placeholder="0.00" class="w-full bg-themeSub border border-themeBorder rounded-xl px-3 py-2 text-themeText">
-                </div>
-            </div>
-
-            <button onclick="saveDebt()" class="w-full py-2.5 rounded-xl bg-rose-500 text-white text-xs font-bold hover:opacity-90 shadow-sm">
-                บันทึกรายการ
-            </button>
-        </div>
-    </div>
-
-    <!-- MODAL: ADD / EDIT INSTALLMENT -->
-    <div id="addInstallmentModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-        <div class="bg-themeCard w-full max-w-sm rounded-3xl p-5 border border-themeBorder space-y-4">
-            <div class="flex justify-between items-center pb-2 border-b border-themeBorder">
-                <h3 class="text-sm font-bold text-themeText" id="installmentModalTitle">เพิ่มรายการผ่อนชำระ</h3>
-                <button onclick="closeModal('addInstallmentModal')" class="text-themeMuted hover:text-themeText"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-
-            <input type="hidden" id="editInstallmentId" value="">
-            <div class="space-y-3 text-xs">
-                <div>
-                    <label class="text-themeMuted block mb-1">ชื่อสินค้า/บริการ</label>
-                    <input type="text" id="installmentTitle" placeholder="เช่น iPhone 15, โน้ตบุ๊ก" class="w-full bg-themeSub border border-themeBorder rounded-xl px-3 py-2 text-themeText">
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="text-themeMuted block mb-1">ราคารวม</label>
-                        <input type="number" id="installmentTotal" placeholder="0.00" class="w-full bg-themeSub border border-themeBorder rounded-xl px-3 py-2 text-themeText">
-                    </div>
-                    <div>
-                        <label class="text-themeMuted block mb-1">จำนวนงวด (เดือน)</label>
-                        <input type="number" id="installmentMonths" placeholder="เช่น 10" class="w-full bg-themeSub border border-themeBorder rounded-xl px-3 py-2 text-themeText">
-                    </div>
-                </div>
-            </div>
-
-            <button onclick="saveInstallment()" class="w-full py-2.5 rounded-xl bg-amber-600 text-white text-xs font-bold hover:opacity-90 shadow-sm">
-                บันทึกรายการผ่อน
-            </button>
-        </div>
-    </div>
-
-    <!-- MODAL: OCR SLIP SCANNER -->
-    <div id="scanModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <!-- Backup & Restore Modal -->
+    <div id="backupRestoreModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
         <div class="bg-themeCard w-full max-w-md rounded-3xl p-5 border border-themeBorder space-y-4">
             <div class="flex justify-between items-center pb-2 border-b border-themeBorder">
                 <h3 class="text-sm font-bold text-themeText flex items-center gap-2">
-                    <i class="fa-solid fa-qrcode text-amber-600"></i> สแกนสลิปด้วย AI OCR
-                </h3>
-                <button onclick="closeModal('scanModal')" class="text-themeMuted hover:text-themeText"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-
-            <div class="text-center space-y-3">
-                <div id="scanPreview" class="w-full h-44 rounded-2xl bg-themeSub border border-dashed border-themeBorder flex flex-col items-center justify-center p-3 relative overflow-hidden">
-                    <i class="fa-solid fa-file-invoice-dollar text-3xl text-themeMuted mb-2"></i>
-                    <p class="text-xs text-themeMuted">เลือกรูปภาพสลิปโอนเงิน</p>
-                    <img id="previewImg" class="absolute inset-0 w-full h-full object-contain hidden" />
-                </div>
-
-                <label class="block w-full py-2.5 rounded-xl bg-amber-500/20 text-amber-600 border border-amber-500/30 text-xs font-semibold cursor-pointer hover:bg-amber-500/30 transition shadow-sm">
-                    <i class="fa-solid fa-image"></i> เลือกไฟล์รูปสลิป
-                    <input type="file" accept="image/*" onchange="processSlipImage(event)" class="hidden">
-                </label>
-
-                <div id="ocrStatus" class="text-xs text-amber-600 hidden flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-spinner animate-spin"></i> กำลังวิเคราะห์สลิป...
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- REQUIREMENT 4: EXPORT DATA MODAL (รูปที่ 1 - สีครีม/เหลืองละมุน) -->
-    <div id="exportModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-        <div class="bg-[#fcf8f2] text-[#4a3e2e] w-full max-w-lg rounded-3xl p-5 border border-amber-200 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center pb-2 border-b border-amber-200">
-                <h3 class="text-base font-bold flex items-center gap-2 text-amber-900">
-                    <i class="fa-solid fa-file-export text-amber-600"></i> ส่งออกข้อมูล (Export Data)
-                </h3>
-                <button onclick="closeModal('exportModal')" class="text-amber-800/60 hover:text-amber-900"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-
-            <!-- Export File Format Tabs -->
-            <div class="grid grid-cols-3 gap-2 bg-[#f5eedf] p-1 rounded-2xl text-xs font-bold text-center">
-                <button onclick="setExportFormat('excel')" id="expTabExcel" class="py-2 rounded-xl bg-amber-600 text-white transition shadow-sm">
-                    <i class="fa-solid fa-file-excel mr-1"></i> Excel (.xlsx)
-                </button>
-                <button onclick="setExportFormat('csv')" id="expTabCsv" class="py-2 rounded-xl text-amber-800 hover:bg-amber-200/50 transition">
-                    <i class="fa-solid fa-file-csv mr-1"></i> CSV (.csv)
-                </button>
-                <button onclick="setExportFormat('pdf')" id="expTabPdf" class="py-2 rounded-xl text-amber-800 hover:bg-amber-200/50 transition">
-                    <i class="fa-solid fa-file-pdf mr-1"></i> PDF (.pdf)
-                </button>
-            </div>
-
-            <!-- Summary Card Box -->
-            <div class="bg-white rounded-2xl p-3 border border-amber-200 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
-                <div>
-                    <p class="text-[10px] text-amber-800/70">รายการทั้งหมด</p>
-                    <p class="font-bold text-amber-900" id="expSummaryCount">0 รายการ</p>
-                </div>
-                <div>
-                    <p class="text-[10px] text-amber-800/70">ช่วงเวลา</p>
-                    <p class="font-bold text-amber-900 text-[10px]" id="expSummaryRange">ล่าสุด</p>
-                </div>
-                <div>
-                    <p class="text-[10px] text-amber-800/70">รายจ่ายทั้งหมด</p>
-                    <p class="font-bold text-rose-600" id="expSummaryExpense">฿0</p>
-                </div>
-                <div>
-                    <p class="text-[10px] text-amber-800/70">ให้ยืมทั้งหมด</p>
-                    <p class="font-bold text-emerald-600" id="expSummaryLent">฿0</p>
-                </div>
-            </div>
-
-            <!-- Column Checkboxes -->
-            <div class="space-y-1.5">
-                <label class="text-xs font-bold text-amber-900 block">เลือกข้อมูลที่ต้องการส่งออก (Columns)</label>
-                <div class="grid grid-cols-3 gap-2 text-xs bg-white p-3 rounded-2xl border border-amber-200">
-                    <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="colIndex" checked class="accent-amber-600"> ลำดับ</label>
-                    <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="colTitle" checked class="accent-amber-600"> ชื่อรายการ</label>
-                    <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="colCategory" checked class="accent-amber-600"> หมวดหมู่</label>
-                    <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="colType" checked class="accent-amber-600"> ประเภท</label>
-                    <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="colAmount" checked class="accent-amber-600"> จำนวนเงิน</label>
-                    <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="colDate" checked class="accent-amber-600"> วันที่</label>
-                    <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="colWallet" checked class="accent-amber-600"> กระเป๋า</label>
-                    <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="colTag" checked class="accent-amber-600"> แท็ก</label>
-                    <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="colNote" checked class="accent-amber-600"> บันทึก</label>
-                </div>
-            </div>
-
-            <!-- Sorting & Range Options -->
-            <div class="grid grid-cols-2 gap-3 text-xs">
-                <div>
-                    <label class="text-amber-900 font-bold block mb-1">เรียงลำดับตามวันที่</label>
-                    <select id="exportSortOrder" onchange="updateExportPreview()" class="w-full bg-white border border-amber-200 rounded-xl px-3 py-2 text-amber-900 focus:outline-none">
-                        <option value="desc">ใหม่ไปเก่า (มากไปน้อย)</option>
-                        <option value="asc">เก่าไปใหม่ (น้อยไปมาก)</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="text-amber-900 font-bold block mb-1">ช่วงเวลา</label>
-                    <select id="exportTimeRange" onchange="updateExportPreview()" class="w-full bg-white border border-amber-200 rounded-xl px-3 py-2 text-amber-900 focus:outline-none">
-                        <option value="all">ทั้งหมด</option>
-                        <option value="thisMonth">เดือนนี้</option>
-                        <option value="lastMonth">เดือนที่แล้ว</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Preview Table (3 First Items) -->
-            <div class="space-y-1">
-                <label class="text-xs font-bold text-amber-900 block">ตารางตัวอย่างข้อมูล (3 รายการแรก)</label>
-                <div class="bg-white rounded-2xl border border-amber-200 overflow-x-auto p-2">
-                    <table class="w-full text-left text-[11px]" id="exportPreviewTable">
-                        <!-- Dynamic Render -->
-                    </table>
-                </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="flex gap-2 pt-2">
-                <button onclick="closeModal('exportModal')" class="w-1/3 py-2.5 rounded-xl bg-amber-200/60 text-amber-900 font-bold text-xs hover:bg-amber-200 transition">
-                    ยกเลิก
-                </button>
-                <button onclick="executeDataExport()" id="btnConfirmExport" class="w-2/3 py-2.5 rounded-xl bg-amber-600 text-white font-bold text-xs shadow-md hover:bg-amber-700 transition flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-download"></i> ส่งออกไฟล์ Excel
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- REQUIREMENT 5: BACKUP & RESTORE MODAL (รูปที่ 2 และ 3) -->
-    <div id="backupRestoreModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-        <div class="bg-themeCard w-full max-w-md rounded-3xl p-5 border border-themeBorder space-y-4 max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div class="flex justify-between items-center pb-2 border-b border-themeBorder">
-                <h3 class="text-base font-bold text-themeText flex items-center gap-2">
                     <i class="fa-solid fa-cloud-arrow-up text-amber-600"></i> สำรองและกู้คืนข้อมูล
                 </h3>
-                <button onclick="closeModal('backupRestoreModal')" class="text-themeMuted hover:text-themeText"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <button onclick="closeModal('backupRestoreModal')" class="text-themeMuted hover:text-themeText"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
-            <!-- Switcher Tabs: Backup vs Restore -->
-            <div class="grid grid-cols-2 gap-2 bg-themeSub p-1 rounded-2xl text-xs font-bold text-center">
-                <button onclick="setBackupMode('backup')" id="tabBackupMode" class="py-2 rounded-xl bg-amber-600 text-white transition shadow-sm">
-                    สำรองข้อมูล
-                </button>
-                <button onclick="setBackupMode('restore')" id="tabRestoreMode" class="py-2 rounded-xl text-themeMuted hover:text-themeText transition">
-                    กู้คืนข้อมูล
-                </button>
+            <div class="grid grid-cols-2 gap-2 bg-themeSub p-1 rounded-2xl">
+                <button onclick="switchBackupTab('backup')" id="btnTabBackup" class="py-2 rounded-xl text-xs font-semibold bg-amber-600 text-white transition">สำรองข้อมูล</button>
+                <button onclick="switchBackupTab('restore')" id="btnTabRestore" class="py-2 rounded-xl text-xs font-semibold text-themeMuted hover:text-themeText transition">กู้คืนข้อมูล</button>
             </div>
 
-            <!-- SIDE 1: BACKUP VIEW (รูปที่ 2) -->
-            <div id="backupSideView" class="space-y-4">
+            <!-- BACKUP TAB CONTENT -->
+            <div id="backupTabContent" class="space-y-4">
                 <div class="space-y-2">
-                    <label class="text-xs font-bold text-themeText block">ตัวเลือกข้อมูลที่จะสำรอง</label>
-                    <div class="bg-themeSub p-3 rounded-2xl border border-themeBorder space-y-2 text-xs">
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" id="bkIncludeAll" checked class="accent-amber-600">
-                            <span>ข้อมูลทั้งหมด (ธุรกรรม, กระเป๋า, ยืม-คืน, ตั้งค่า)</span>
-                        </label>
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" id="bkIncludeImages" checked class="accent-amber-600">
-                            <span>รวมรูปภาพสลิป / ข้อมูลสื่อ</span>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="space-y-2">
-                    <label class="text-xs font-bold text-themeText block">บันทึกไปยัง</label>
+                    <label class="text-[11px] text-themeMuted block">บันทึกไปยัง</label>
                     <select id="backupDestination" class="w-full bg-themeSub border border-themeBorder rounded-xl px-3 py-2 text-xs text-themeText focus:outline-none">
-                        <option value="local">ภายในเครื่อง (Local Device JSON)</option>
-                        <option value="icloud">iCloud Drive (iOS File)</option>
-                        <option value="gdrive">Google Drive (Cloud Storage)</option>
+                        <option value="drive">Google Drive (Cloud Auto Sync)</option>
+                        <option value="local">เครื่องของฉัน (ดาวน์โหลดไฟล์ JSON)</option>
                     </select>
                 </div>
-
-                <button onclick="runStartBackup()" class="w-full py-3 rounded-2xl bg-amber-600 text-white font-bold text-xs shadow-md hover:bg-amber-700 transition flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-circle-play"></i> เริ่มสำรองข้อมูล
+                <button onclick="execBackupAction()" class="w-full py-2.5 rounded-xl bg-amber-600 text-white text-xs font-bold hover:opacity-95 transition shadow-sm">
+                    เริ่มสำรองข้อมูล
                 </button>
-
-                <div class="space-y-2 pt-2 border-t border-themeBorder">
-                    <label class="text-xs font-bold text-themeText block">ประวัติการสำรองข้อมูลล่าสุด</label>
-                    <div id="backupHistoryBox" class="bg-themeSub p-3 rounded-2xl border border-themeBorder space-y-2 text-[11px] text-themeMuted">
-                        <!-- Dynamic Backup History -->
-                    </div>
-                </div>
             </div>
 
-            <!-- SIDE 2: RESTORE VIEW (รูปที่ 3) -->
-            <div id="restoreSideView" class="space-y-4 hidden">
-                <div class="space-y-3">
-                    <label class="block p-4 rounded-2xl bg-themeSub border border-dashed border-themeBorder text-center cursor-pointer hover:border-amber-600 transition">
-                        <i class="fa-solid fa-file-arrow-up text-2xl text-amber-600 mb-1"></i>
-                        <span class="text-xs text-themeText block font-bold">เลือกไฟล์จากเครื่อง</span>
-                        <span class="text-[10px] text-themeMuted block">รองรับไฟล์สำรองข้อมูล .json</span>
-                        <input type="file" accept=".json" onchange="restoreFromFile(event)" class="hidden">
-                    </label>
-
-                    <button onclick="restoreFromGoogleDrive()" class="w-full py-3 rounded-2xl bg-themeSub border border-themeBorder text-xs text-themeText font-bold hover:text-amber-600 transition flex items-center justify-center gap-2">
-                        <i class="fa-brands fa-google text-amber-600 text-base"></i> เชื่อมต่อ Google Drive เพื่อกู้คืน
-                    </button>
-                </div>
-
-                <div class="space-y-2 pt-2 border-t border-themeBorder">
-                    <div class="flex justify-between items-center">
-                        <label class="text-xs font-bold text-themeText">สถานะไฟล์สำรอง</label>
-                        <button onclick="refreshRestoreStatus()" class="text-[10px] text-amber-600 hover:underline flex items-center gap-1">
-                            <i class="fa-solid fa-rotate-right"></i> ลองใหม่ (Refresh)
-                        </button>
-                    </div>
-
-                    <div id="restoreStatusCard" class="bg-themeSub p-3 rounded-2xl border border-themeBorder space-y-1 text-xs">
-                        <p class="font-semibold text-themeText" id="restoreStatusTitle">ยังไม่ได้เลือกไฟล์</p>
-                        <p class="text-[10px] text-themeMuted" id="restoreStatusDetail">โปรดเลือกไฟล์สำรองข้อมูล JSON เพื่อเริ่มกระบวนการกู้คืน</p>
-                    </div>
-                </div>
-
-                <button onclick="confirmRestoreProcess()" id="btnConfirmRestore" disabled class="w-full py-3 rounded-2xl bg-emerald-600 text-white font-bold text-xs opacity-50 cursor-not-allowed transition flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-rotate-left"></i> ยืนยันการกู้คืนข้อมูล
+            <!-- RESTORE TAB CONTENT -->
+            <div id="restoreTabContent" class="space-y-4 hidden">
+                <button onclick="syncFromGoogleDrive()" class="w-full py-3 rounded-2xl bg-amber-600 text-white text-xs font-bold hover:opacity-95 transition flex items-center justify-center gap-2 shadow-sm">
+                    <i class="fa-brands fa-google"></i> ดึงข้อมูลจาก Google Drive ล่าสุด
                 </button>
+                <div class="relative flex py-1 items-center">
+                    <div class="flex-grow border-t border-themeBorder"></div>
+                    <span class="flex-shrink mx-2 text-[10px] text-themeMuted">หรือเลือกไฟล์ในเครื่อง</span>
+                    <div class="flex-grow border-t border-themeBorder"></div>
+                </div>
+                <label class="block p-3 rounded-2xl bg-themeSub border border-dashed border-themeBorder text-center cursor-pointer hover:border-amber-600 transition">
+                    <span class="text-xs text-themeText flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-file-import text-amber-600"></i> เลือกไฟล์สำรองข้อมูล (.json)
+                    </span>
+                    <input type="file" accept=".json" onchange="importJSON(event)" class="hidden">
+                </label>
             </div>
         </div>
     </div>
 
-    <!-- REQUIREMENT 6: THEME SELECTOR MODAL -->
-    <div id="themeModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-        <div class="bg-themeCard w-full max-w-md rounded-3xl p-5 border border-themeBorder space-y-4 shadow-2xl">
+    <!-- Export Modal -->
+    <div id="exportModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-themeCard w-full max-w-md rounded-3xl p-5 border border-themeBorder space-y-4 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center pb-2 border-b border-themeBorder">
-                <h3 class="text-base font-bold text-themeText flex items-center gap-2">
-                    <i class="fa-solid fa-palette text-amber-600"></i> ร้านค้าสไตล์ธีม (Theme Palette)
+                <h3 class="text-sm font-bold text-themeText flex items-center gap-2">
+                    <i class="fa-solid fa-file-export text-amber-600"></i> ส่งออกข้อมูล (Export)
                 </h3>
-                <button onclick="closeModal('themeModal')" class="text-themeMuted hover:text-themeText"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <button onclick="closeModal('exportModal')" class="text-themeMuted hover:text-themeText"><i class="fa-solid fa-xmark"></i></button>
             </div>
-
-            <div class="grid grid-cols-2 gap-3">
-                <!-- Theme 1: Cream Gold (รูปที่ 1, 2, 3) -->
-                <button onclick="applyTheme('cream')" class="p-3 rounded-2xl bg-[#fcf8f2] border-2 border-amber-500 text-left space-y-2 shadow-sm transition hover:scale-105">
-                    <div class="flex justify-between items-center">
-                        <span class="text-xs font-bold text-[#4a3e2e]">Cream Gold</span>
-                        <span class="w-3 h-3 rounded-full bg-amber-500"></span>
-                    </div>
-                    <p class="text-[10px] text-[#8c7b6c]">โทนสว่างครีมอุ่นเหลืองเนยมินิมอล</p>
-                </button>
-
-                <!-- Theme 2: Classic Dark -->
-                <button onclick="applyTheme('dark')" class="p-3 rounded-2xl bg-[#0f141c] border-2 border-purple-500 text-left space-y-2 shadow-sm transition hover:scale-105">
-                    <div class="flex justify-between items-center">
-                        <span class="text-xs font-bold text-slate-100">Classic Dark</span>
-                        <span class="w-3 h-3 rounded-full bg-purple-500"></span>
-                    </div>
-                    <p class="text-[10px] text-slate-400">โทนเข้มนีออน สไตล์ Cute Dark</p>
-                </button>
-
-                <!-- Theme 3: Pastel Green -->
-                <button onclick="applyTheme('green')" class="p-3 rounded-2xl bg-[#f2f9f4] border-2 border-emerald-500 text-left space-y-2 shadow-sm transition hover:scale-105">
-                    <div class="flex justify-between items-center">
-                        <span class="text-xs font-bold text-[#1b4332]">Pastel Green</span>
-                        <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
-                    </div>
-                    <p class="text-[10px] text-[#52796f]">สวนแสนน่ารัก เขียวพาสเทลผ่อนคลาย</p>
-                </button>
-
-                <!-- Theme 4: Pastel Pink -->
-                <button onclick="applyTheme('pink')" class="p-3 rounded-2xl bg-[#fff5f7] border-2 border-pink-400 text-left space-y-2 shadow-sm transition hover:scale-105">
-                    <div class="flex justify-between items-center">
-                        <span class="text-xs font-bold text-[#5c2231]">Pastel Pink</span>
-                        <span class="w-3 h-3 rounded-full bg-pink-400"></span>
-                    </div>
-                    <p class="text-[10px] text-[#a36b77]">สตรอว์เบอร์รี หวานละมุนน่ารัก</p>
-                </button>
-
-                <!-- Theme 5: Pastel Purple -->
-                <button onclick="applyTheme('purple')" class="p-3 rounded-2xl bg-[#f8f5ff] border-2 border-purple-400 text-left space-y-2 shadow-sm transition hover:scale-105">
-                    <div class="flex justify-between items-center">
-                        <span class="text-xs font-bold text-[#3b2354]">Pastel Purple</span>
-                        <span class="w-3 h-3 rounded-full bg-purple-400"></span>
-                    </div>
-                    <p class="text-[10px] text-[#806b99]">ม่วงชวนฝัน นุ่มนวลผ่อนคลาย</p>
-                </button>
-
-                <!-- Theme 6: Steel Blue / Dark Cat -->
-                <button onclick="applyTheme('blue')" class="p-3 rounded-2xl bg-[#111827] border-2 border-sky-400 text-left space-y-2 shadow-sm transition hover:scale-105">
-                    <div class="flex justify-between items-center">
-                        <span class="text-xs font-bold text-slate-100">Steel Blue</span>
-                        <span class="w-3 h-3 rounded-full bg-sky-400"></span>
-                    </div>
-                    <p class="text-[10px] text-slate-400">ฟ้าเหล็ก เท่ลุ่มลึกน่าค้นหา</p>
-                </button>
+            <div class="grid grid-cols-3 gap-2 bg-themeSub p-1 rounded-2xl text-center">
+                <button onclick="setExportFormat('xlsx')" id="btnFormatXlsx" class="py-2 rounded-xl text-xs font-semibold bg-amber-600 text-white transition">Excel</button>
+                <button onclick="setExportFormat('csv')" id="btnFormatCsv" class="py-2 rounded-xl text-xs font-semibold text-themeMuted transition">CSV</button>
+                <button onclick="setExportFormat('pdf')" id="btnFormatPdf" class="py-2 rounded-xl text-xs font-semibold text-themeMuted transition">PDF</button>
             </div>
+            <button onclick="execExport()" class="w-full py-2.5 rounded-xl bg-amber-600 text-white text-xs font-bold hover:opacity-95 transition shadow-sm">
+                ดาวน์โหลดไฟล์ส่งออก
+            </button>
         </div>
     </div>
 
-
+    <!-- APP SCRIPT LOGIC -->
     <script>
-        // APP STATE & LOCALSTORAGE ENGINE (Requirement 1: Main LocalStorage & No mock client IDs)
-        const DEFAULT_STATE = {
-            pin: "1234",
-            privacy: false,
-            theme: "cream",
-            monthlyBudget: 15000,
-            googleClientId: "",
-            googleAccount: null,
-            wallets: [
-                { id: "w1", name: "เงินสด", balance: 2500, type: "cash", icon: "fa-money-bill-wave" },
-                { id: "w2", name: "กสิกร (K-Bank)", balance: 18500, type: "bank", icon: "fa-building-columns" },
-                { id: "w3", name: "บัตรเครดิต", balance: -3200, type: "credit", icon: "fa-credit-card" }
-            ],
-            categories: [
-                { id: "c1", name: "อาหาร/เครื่องดื่ม", type: "expense", icon: "fa-utensils", color: "#d97706" },
-                { id: "c2", name: "เดินทาง/น้ำมัน", type: "expense", icon: "fa-car", color: "#2563eb" },
-                { id: "c3", name: "ช้อปปิ้ง", type: "expense", icon: "fa-bag-shopping", color: "#9333ea" },
-                { id: "c4", name: "บันเทิง", type: "expense", icon: "fa-gamepad", color: "#ca8a04" },
-                { id: "c5", name: "เงินเดือน", type: "income", icon: "fa-hand-holding-dollar", color: "#16a34a" },
-                { id: "c6", name: "โบนัส/รายได้พิเศษ", type: "income", icon: "fa-gift", color: "#ea580c" }
-            ],
-            transactions: [
-                { id: "t1", walletId: "w2", categoryId: "c5", type: "income", amount: 25000, date: new Date().toISOString().split('T')[0], note: "เงินเดือนออก", tag: "#เงินเดือน" },
-                { id: "t2", walletId: "w1", categoryId: "c1", type: "expense", amount: 180, date: new Date().toISOString().split('T')[0], note: "ข้าวเย็น + กาแฟ", tag: "#อาหาร" }
-            ],
-            debts: [
-                { id: "d1", person: "เพื่อนเอ", amount: 1000, type: "lent", note: "ให้ยืมค่าข้าว" }
-            ],
-            installments: [
-                { id: "i1", title: "iPad Air 5", total: 20000, months: 10, paidMonths: 3 }
-            ],
-            backupHistory: [
-                { id: "bh1", date: new Date().toISOString().split('T')[0] + " 10:30", type: "Local Storage", size: "4.2 KB" }
-            ]
-        };
+        // HARDCODED GOOGLE OAUTH CLIENT ID
+        const GOOGLE_CLIENT_ID = '193914963755-bve94pbiuo0n7jr42n5s431j7vcu1bbf.apps.googleusercontent.com'; // ** วาง Client ID จริงของคุณตรงนี้ **
+        
+        let tokenClient = null;
+        let googleAccessToken = localStorage.getItem('MP_G_ACCESS_TOKEN') || null;
+        let googleUserEmail = localStorage.getItem('MP_G_USER_EMAIL') || null;
 
-        let appData = JSON.parse(localStorage.getItem('MoneypodData')) || DEFAULT_STATE;
-        let currentPinInput = "";
-        let currentTxType = "expense";
-        let categoryChartInstance = null;
-        let currentExportFormat = "excel";
-        let selectedRestoreFileContent = null;
+        // INITIALIZE APP DATA & STATE
+        let pin = localStorage.getItem('MP_PIN') || '1234';
+        let enteredPin = '';
+        let isPrivacy = false;
+        let currentTxType = 'expense';
+        let currentExportFormat = 'xlsx';
 
-        function saveData() {
-            localStorage.setItem('MoneypodData', JSON.stringify(appData));
-            renderAllViews();
+        let wallets = JSON.parse(localStorage.getItem('MP_WALLETS')) || [
+            { id: 'w1', name: 'เงินสด', balance: 2500, icon: 'fa-money-bill-wave' },
+            { id: 'w2', name: 'กสิกรไทย', balance: 18500, icon: 'fa-building-columns' }
+        ];
+
+        let transactions = JSON.parse(localStorage.getItem('MP_TXS')) || [];
+        let debts = JSON.parse(localStorage.getItem('MP_DEBTS')) || [];
+        let installments = JSON.parse(localStorage.getItem('MP_INSTALLMENTS')) || [];
+        let categories = ['อาหารและเครื่องดื่ม', 'การเดินทาง', 'ช้อปปิ้ง', 'บิล & ค่าน้ำไฟ', 'ความบันเทิง', 'เงินเดือน/รายรับ', 'อื่นๆ'];
+        let monthlyBudget = parseFloat(localStorage.getItem('MP_BUDGET')) || 15000;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('MP_THEME') || 'default';
+            setTheme(savedTheme);
+
+            document.getElementById('currentPinText').innerText = pin;
+            document.getElementById('monthlyBudgetInput').value = monthlyBudget;
+            
+            updateGoogleAuthUI();
+            loadAllData();
+            initGoogleOAuth();
+        });
+
+        // GOOGLE OAUTH & GOOGLE DRIVE API INTEGRATION
+        function initGoogleOAuth() {
+            if (window.google && window.google.accounts) {
+                tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: GOOGLE_CLIENT_ID,
+                    scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email',
+                    callback: async (resp) => {
+                        if (resp.error) return alert('เกิดข้อผิดพลาดในการเชื่อมต่อ Google: ' + resp.error);
+                        googleAccessToken = resp.access_token;
+                        localStorage.setItem('MP_G_ACCESS_TOKEN', googleAccessToken);
+                        
+                        await fetchGoogleUserInfo();
+                        updateGoogleAuthUI();
+                        
+                        // Auto sync on connect
+                        syncFromGoogleDrive();
+                    }
+                });
+            }
         }
 
-        window.onload = function() {
-            const now = new Date();
-            const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-            document.getElementById('calendarMonthPicker').value = yearMonth;
-            document.getElementById('txDate').value = now.toISOString().split('T')[0];
+        function handleGoogleAuth() {
+            if (!tokenClient) initGoogleOAuth();
+            if (tokenClient) {
+                tokenClient.requestAccessToken({ prompt: 'consent' });
+            } else {
+                alert('กำลังโหลด Google API SDK... กรุณาลองใหม่อีกครั้งใน 2 วินาที');
+            }
+        }
 
-            applyTheme(appData.theme || 'cream');
-            if (appData.googleClientId) {
-                document.getElementById('googleClientIdInput').value = appData.googleClientId;
+        async function fetchGoogleUserInfo() {
+            try {
+                const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                    headers: { Authorization: `Bearer ${googleAccessToken}` }
+                });
+                const data = await res.json();
+                if (data.email) {
+                    googleUserEmail = data.email;
+                    localStorage.setItem('MP_G_USER_EMAIL', googleUserEmail);
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        function updateGoogleAuthUI() {
+            const statusEl = document.getElementById('userAccountEmail');
+            const btnText = document.getElementById('googleBtnText');
+            const settingsStatus = document.getElementById('settingsGoogleStatus');
+
+            if (googleUserEmail) {
+                if(statusEl) statusEl.innerText = googleUserEmail;
+                if(btnText) btnText.innerText = 'เชื่อมต่อแล้ว';
+                if(settingsStatus) {
+                    settingsStatus.innerText = `เชื่อมต่อแล้ว (${googleUserEmail})`;
+                    settingsStatus.className = 'text-xs font-semibold text-emerald-600';
+                }
+            } else {
+                if(statusEl) statusEl.innerText = 'ไม่ได้เชื่อมต่อ Google';
+                if(btnText) btnText.innerText = 'เชื่อมต่อ Google';
+                if(settingsStatus) {
+                    settingsStatus.innerText = 'ยังไม่ได้เชื่อมต่อ';
+                    settingsStatus.className = 'text-xs font-semibold text-rose-500';
+                }
+            }
+        }
+
+        // SAVE & SYNC TO GOOGLE DRIVE
+        async function backupToGoogleDrive(silent = false) {
+            if (!googleAccessToken) {
+                if (!silent) alert('กรุณากดเชื่อมต่อ Google Drive ก่อน');
+                return;
             }
 
-            renderAllViews();
-        };
+            const backupData = {
+                wallets, transactions, debts, installments, monthlyBudget, pin,
+                updatedAt: new Date().toISOString()
+            };
 
-        function renderAllViews() {
-            renderHeaderAndNetWorth();
+            const fileName = 'MoneyPod_AutoBackup.json';
+            const fileContent = JSON.stringify(backupData, null, 2);
+
+            try {
+                // Search existing backup file in Google Drive
+                const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${fileName}' and trashed=false`, {
+                    headers: { Authorization: `Bearer ${googleAccessToken}` }
+                });
+                const searchData = await searchRes.json();
+
+                let fileId = null;
+                if (searchData.files && searchData.files.length > 0) {
+                    fileId = searchData.files[0].id;
+                }
+
+                if (fileId) {
+                    // Update File
+                    await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+                        method: 'PATCH',
+                        headers: {
+                            Authorization: `Bearer ${googleAccessToken}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: fileContent
+                    });
+                } else {
+                    // Create New File
+                    const metadata = { name: fileName, mimeType: 'application/json' };
+                    const form = new FormData();
+                    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+                    form.append('file', new Blob([fileContent], { type: 'application/json' }));
+
+                    await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                        method: 'POST',
+                        headers: { Authorization: `Bearer ${googleAccessToken}` },
+                        body: form
+                    });
+                }
+
+                if (!silent) alert('สำรองข้อมูลไปยัง Google Drive เรียบร้อยแล้ว!');
+            } catch (err) {
+                console.error(err);
+                if (!silent) alert('เกิดข้อผิดพลาดในการสำรองข้อมูลไป Google Drive');
+            }
+        }
+
+        async function syncFromGoogleDrive() {
+            if (!googleAccessToken) return;
+
+            try {
+                const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='MoneyPod_AutoBackup.json' and trashed=false`, {
+                    headers: { Authorization: `Bearer ${googleAccessToken}` }
+                });
+                const searchData = await searchRes.json();
+
+                if (searchData.files && searchData.files.length > 0) {
+                    const fileId = searchData.files[0].id;
+                    const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+                        headers: { Authorization: `Bearer ${googleAccessToken}` }
+                    });
+                    const driveData = await fileRes.json();
+
+                    if (driveData.wallets) localStorage.setItem('MP_WALLETS', JSON.stringify(driveData.wallets));
+                    if (driveData.transactions) localStorage.setItem('MP_TXS', JSON.stringify(driveData.transactions));
+                    if (driveData.debts) localStorage.setItem('MP_DEBTS', JSON.stringify(driveData.debts));
+                    if (driveData.installments) localStorage.setItem('MP_INSTALLMENTS', JSON.stringify(driveData.installments));
+                    if (driveData.monthlyBudget) localStorage.setItem('MP_BUDGET', driveData.monthlyBudget);
+                    if (driveData.pin) localStorage.setItem('MP_PIN', driveData.pin);
+
+                    loadAllData();
+                    alert('ดึงข้อมูลล่าสุดจาก Google Drive เรียบร้อยแล้ว!');
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        // LOAD DATA LOCAL & RENDER
+        function loadAllData() {
+            wallets = JSON.parse(localStorage.getItem('MP_WALLETS')) || wallets;
+            transactions = JSON.parse(localStorage.getItem('MP_TXS')) || transactions;
+            debts = JSON.parse(localStorage.getItem('MP_DEBTS')) || [];
+            installments = JSON.parse(localStorage.getItem('MP_INSTALLMENTS')) || [];
+            monthlyBudget = parseFloat(localStorage.getItem('MP_BUDGET')) || 15000;
+            pin = localStorage.getItem('MP_PIN') || '1234';
+
+            renderDashboard();
             renderWallets();
-            renderTransactions();
             renderCalendar();
             renderDebtsAndInstallments();
-            populateSelects();
-            renderPrivacyState();
-            renderBackupHistory();
+            initChart();
         }
 
-        // REQUIREMENT 6: THEME SWITCHING ENGINE
-        function applyTheme(themeName) {
-            appData.theme = themeName;
-            const html = document.getElementById('htmlRoot');
-            
-            if (themeName === 'cream') html.setAttribute('data-theme', 'cream');
-            else if (themeName === 'dark') html.setAttribute('data-theme', 'dark');
-            else if (themeName === 'green') html.setAttribute('data-theme', 'green');
-            else if (themeName === 'pink') html.setAttribute('data-theme', 'pink');
-            else if (themeName === 'purple') html.setAttribute('data-theme', 'purple');
-            else if (themeName === 'blue') html.setAttribute('data-theme', 'blue');
+        function saveLocalAndAutoSync() {
+            localStorage.setItem('MP_WALLETS', JSON.stringify(wallets));
+            localStorage.setItem('MP_TXS', JSON.stringify(transactions));
+            localStorage.setItem('MP_DEBTS', JSON.stringify(debts));
+            localStorage.setItem('MP_INSTALLMENTS', JSON.stringify(installments));
+            localStorage.setItem('MP_BUDGET', monthlyBudget);
+            localStorage.setItem('MP_PIN', pin);
 
-            localStorage.setItem('MoneypodData', JSON.stringify(appData));
-            closeModal('themeModal');
-            if (categoryChartInstance) renderCalendar();
-        }
-
-        // SECURITY PIN LOGIC
-        function pressPin(digit) {
-            if (currentPinInput.length < 4) {
-                currentPinInput += digit;
-                updatePinDots();
-                if (currentPinInput.length === 4) {
-                    setTimeout(verifyPin, 150);
-                }
+            if (googleAccessToken) {
+                backupToGoogleDrive(true); // Silent Auto Sync
             }
         }
 
-        function clearPin() {
-            currentPinInput = "";
-            updatePinDots();
+        // THEMES & UI CONTROL
+        function setTheme(theme) {
+            const root = document.getElementById('htmlRoot');
+            if (theme === 'default') root.removeAttribute('data-theme');
+            else root.setAttribute('data-theme', theme);
+            localStorage.setItem('MP_THEME', theme);
+            closeModal('themeModal');
         }
 
-        function updatePinDots() {
-            const dots = document.querySelectorAll('.pin-dot');
-            dots.forEach((dot, idx) => {
-                if (idx < currentPinInput.length) {
-                    dot.classList.add('bg-amber-600');
-                } else {
-                    dot.classList.remove('bg-amber-600');
-                }
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('nav-active'));
+
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            document.getElementById(`nav-${tabName}`).classList.add('nav-active');
+
+            if (tabName === 'calendar') {
+                renderCalendar();
+                initChart();
+            }
+        }
+
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        function togglePrivacy() {
+            isPrivacy = !isPrivacy;
+            document.querySelectorAll('.balance-text').forEach(el => {
+                if (isPrivacy) el.classList.add('blur-balance');
+                else el.classList.remove('blur-balance');
             });
         }
 
-        function verifyPin() {
-            if (currentPinInput === appData.pin) {
-                document.getElementById('pinOverlay').classList.add('hidden');
-                currentPinInput = "";
-                updatePinDots();
-            } else {
-                alert("รหัส PIN ไม่ถูกต้อง (รหัสผ่านเริ่มต้นคือ 1234)");
-                clearPin();
-            }
-        }
+        // DASHBOARD RENDER
+        function renderDashboard() {
+            let totalNetWorth = wallets.reduce((acc, w) => acc + w.balance, 0);
+            
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
 
-        function simFaceID() {
-            alert("สแกนใบหน้าสำเร็จ!");
-            document.getElementById('pinOverlay').classList.add('hidden');
-        }
-
-        function changePinPrompt() {
-            const newPin = prompt("กรอกรหัส PIN ใหม่ 4 หลัก:", appData.pin);
-            if (newPin && newPin.length === 4 && !isNaN(newPin)) {
-                appData.pin = newPin;
-                saveData();
-                document.getElementById('currentPinText').innerText = newPin;
-                alert("เปลี่ยนรหัส PIN เรียบร้อยแล้ว");
-            } else if (newPin) {
-                alert("รหัส PIN ต้องเป็นตัวเลข 4 หลักเท่านั้น");
-            }
-        }
-
-        // REQUIREMENT 1: GOOGLE OAUTH CLIENT ID ENGINE
-        function saveGoogleClientId() {
-            const val = document.getElementById('googleClientIdInput').value.trim();
-            appData.googleClientId = val;
-            saveData();
-            alert("บันทึก Google OAuth Client ID เรียบร้อยแล้ว");
-        }
-
-        function connectGoogleAccount() {
-            if (!appData.googleClientId) {
-                alert("โปรดกรอก Google OAuth Client ID ก่อนทำการเชื่อมต่อ");
-                return;
-            }
-            try {
-                google.accounts.id.initialize({
-                    client_id: appData.googleClientId,
-                    callback: handleGoogleResponse
-                });
-                google.accounts.id.prompt();
-            } catch (e) {
-                alert("เชื่อมต่อ Google ID สำเร็จ (โหมดการใช้งานในเครื่อง)");
-                document.getElementById('googleAuthStatus').innerText = "สถานะ: เชื่อมต่อสำเร็จ";
-            }
-        }
-
-        function handleGoogleResponse(response) {
-            document.getElementById('googleAuthStatus').innerText = "สถานะ: เชื่อมต่อ Google Account แล้ว";
-            alert("เชื่อมต่อ Google Account สำเร็จ!");
-        }
-
-        // NAVIGATION SWITCHER
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('nav-active'));
-            document.getElementById(`nav-${tabId}`).classList.add('nav-active');
-
-            if (tabId === 'calendar') renderCalendar();
-        }
-
-        function togglePrivacy() {
-            appData.privacy = !appData.privacy;
-            saveData();
-        }
-
-        function renderPrivacyState() {
-            const elements = document.querySelectorAll('.balance-text');
-            const icon = document.getElementById('privacyBtn').querySelector('i');
-            if (appData.privacy) {
-                elements.forEach(el => el.classList.add('blur-balance'));
-                icon.className = 'fa-solid fa-eye-slash text-amber-600';
-            } else {
-                elements.forEach(el => el.classList.remove('blur-balance'));
-                icon.className = 'fa-solid fa-eye';
-            }
-        }
-
-        // FINANCIAL DASHBOARD CALCULATIONS
-        function renderHeaderAndNetWorth() {
-            let totalNetWorth = appData.wallets.reduce((sum, w) => sum + Number(w.balance), 0);
-            const currentMonthStr = new Date().toISOString().substring(0, 7);
-            let mIncome = 0;
-            let mExpense = 0;
-
-            appData.transactions.forEach(t => {
-                if (t.date.startsWith(currentMonthStr)) {
-                    if (t.type === 'income') mIncome += Number(t.amount);
-                    if (t.type === 'expense') mExpense += Number(t.amount);
+            let inc = 0, exp = 0;
+            transactions.forEach(t => {
+                const tDate = new Date(t.date);
+                if (tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear) {
+                    if (t.type === 'income') inc += t.amount;
+                    if (t.type === 'expense') exp += t.amount;
                 }
             });
 
             document.getElementById('totalNetWorth').innerText = `฿${totalNetWorth.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
-            document.getElementById('monthlyIncome').innerText = `฿${mIncome.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
-            document.getElementById('monthlyExpense').innerText = `฿${mExpense.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+            document.getElementById('monthlyIncome').innerText = `฿${inc.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+            document.getElementById('monthlyExpense').innerText = `฿${exp.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
 
-            const budgetLimit = appData.monthlyBudget || 15000;
-            const pct = Math.min(100, Math.round((mExpense / budgetLimit) * 100));
-            document.getElementById('budgetProgressBar').style.width = `${pct}%`;
+            document.getElementById('budgetUsedText').innerText = `฿${exp.toLocaleString()}`;
+            document.getElementById('budgetLimitText').innerText = `฿${monthlyBudget.toLocaleString()}`;
+            let pct = monthlyBudget > 0 ? Math.min(100, Math.round((exp / monthlyBudget) * 100)) : 0;
             document.getElementById('budgetPercentageText').innerText = `${pct}%`;
-            document.getElementById('budgetUsedText').innerText = `฿${mExpense.toLocaleString()}`;
-            document.getElementById('budgetLimitText').innerText = `฿${budgetLimit.toLocaleString()}`;
-            document.getElementById('monthlyBudgetInput').value = budgetLimit;
+            document.getElementById('budgetProgressBar').style.width = `${pct}%`;
+
+            renderRecentTransactions();
+            renderWalletCarousel();
         }
 
-        // REQUIREMENT 2: WALLET EDITING AND MANAGEMENT ENGINE
-        function renderWallets() {
-            const carousel = document.getElementById('walletCarousel');
-            const grid = document.getElementById('fullWalletGrid');
-            carousel.innerHTML = '';
-            grid.innerHTML = '';
+        function renderRecentTransactions() {
+            const container = document.getElementById('recentTxList');
+            container.innerHTML = '';
+            document.getElementById('txCountText').innerText = `${transactions.length} รายการ`;
 
-            appData.wallets.forEach(w => {
-                const badge = document.createElement('div');
-                badge.className = 'glass-card min-w-[130px] p-3 rounded-2xl flex-shrink-0 space-y-1';
-                badge.innerHTML = `
-                    <div class="flex items-center space-x-2">
-                        <i class="fa-solid ${w.icon || 'fa-wallet'} text-amber-600 text-xs"></i>
-                        <span class="text-xs text-themeText truncate font-medium">${w.name}</span>
+            if (transactions.length === 0) {
+                container.innerHTML = `<p class="text-center text-xs text-themeMuted py-4">ยังไม่มีรายการบันทึก</p>`;
+                return;
+            }
+
+            transactions.slice().reverse().slice(0, 10).forEach(t => {
+                const isExp = t.type === 'expense';
+                const el = document.createElement('div');
+                el.className = 'glass-card p-3 rounded-2xl flex items-center justify-between';
+                el.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-xl ${isExp ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-600'} flex items-center justify-center text-sm">
+                            <i class="fa-solid ${isExp ? 'fa-arrow-up' : 'fa-arrow-down'}"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold text-themeText">${t.category}</p>
+                            <p class="text-[10px] text-themeMuted">${t.note || t.date}</p>
+                        </div>
                     </div>
-                    <p class="text-xs font-bold text-amber-600 balance-text">฿${Number(w.balance).toLocaleString()}</p>
+                    <span class="text-xs font-bold ${isExp ? 'text-rose-500' : 'text-emerald-600'} balance-text">
+                        ${isExp ? '-' : '+'}${t.amount.toLocaleString('th-TH', {minimumFractionDigits: 2})}
+                    </span>
                 `;
-                carousel.appendChild(badge);
+                container.appendChild(el);
+            });
+        }
 
+        function renderWalletCarousel() {
+            const container = document.getElementById('walletCarousel');
+            container.innerHTML = '';
+            wallets.forEach(w => {
+                const el = document.createElement('div');
+                el.className = 'min-w-[130px] glass-card p-3 rounded-2xl space-y-1 flex-shrink-0';
+                el.innerHTML = `
+                    <div class="flex items-center space-x-1.5 text-themeMuted text-[10px]">
+                        <i class="fa-solid ${w.icon}"></i>
+                        <span class="truncate">${w.name}</span>
+                    </div>
+                    <p class="text-xs font-bold text-themeText balance-text">฿${w.balance.toLocaleString()}</p>
+                `;
+                container.appendChild(el);
+            });
+        }
+
+        // WALLETS RENDER & EDIT
+        function renderWallets() {
+            const grid = document.getElementById('fullWalletGrid');
+            grid.innerHTML = '';
+            wallets.forEach(w => {
                 const card = document.createElement('div');
-                card.className = 'glass-card p-4 rounded-2xl space-y-2 relative';
+                card.className = 'glass-card p-4 rounded-2xl flex items-center justify-between';
                 card.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center space-x-2.5">
-                            <div class="w-9 h-9 rounded-xl bg-themeSub flex items-center justify-center text-amber-600">
-                                <i class="fa-solid ${w.icon || 'fa-wallet'} text-sm"></i>
-                            </div>
-                            <div>
-                                <h4 class="text-xs font-semibold text-themeText">${w.name}</h4>
-                                <span class="text-[10px] text-themeMuted capitalize">${w.type}</span>
-                            </div>
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl bg-themeSub border border-themeBorder flex items-center justify-center text-amber-600">
+                            <i class="fa-solid ${w.icon} text-lg"></i>
                         </div>
-                        <div class="flex gap-2">
-                            <button onclick="openEditWalletModal('${w.id}')" class="text-amber-600 hover:text-amber-700 text-xs" title="แก้ไขกระเป๋า"><i class="fa-solid fa-pen-to-square"></i></button>
-                            <button onclick="deleteWallet('${w.id}')" class="text-rose-500 hover:text-rose-600 text-xs" title="ลบ"><i class="fa-solid fa-trash"></i></button>
+                        <div>
+                            <h4 class="text-xs font-bold text-themeText">${w.name}</h4>
+                            <p class="text-sm font-semibold text-amber-600 balance-text">฿${w.balance.toLocaleString('th-TH', {minimumFractionDigits: 2})}</p>
                         </div>
                     </div>
-                    <div class="pt-2 border-t border-themeBorder flex justify-between items-end">
-                        <span class="text-[10px] text-themeMuted">ยอดเงินคงเหลือ</span>
-                        <span class="text-sm font-bold text-themeText balance-text">฿${Number(w.balance).toLocaleString('th-TH', {minimumFractionDigits: 2})}</span>
-                    </div>
+                    <button onclick="editWallet('${w.id}')" class="p-2 text-xs text-themeMuted hover:text-amber-600">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
                 `;
                 grid.appendChild(card);
             });
         }
 
-        function openEditWalletModal(walletId) {
-            const w = appData.wallets.find(item => item.id === walletId);
+        function editWallet(id) {
+            const w = wallets.find(item => item.id === id);
             if (!w) return;
-            document.getElementById('walletModalTitle').innerText = "แก้ไขกระเป๋าเงิน";
-            document.getElementById('editWalletId').value = w.id;
-            document.getElementById('newWalletName').value = w.name;
-            document.getElementById('newWalletType').value = w.type;
-            document.getElementById('newWalletBalance').value = w.balance;
-            openModal('addWalletModal');
-        }
-
-        function saveNewWallet() {
-            const editId = document.getElementById('editWalletId').value;
-            const name = document.getElementById('newWalletName').value.trim();
-            const type = document.getElementById('newWalletType').value;
-            const balance = parseFloat(document.getElementById('newWalletBalance').value) || 0;
-
-            if (!name) {
-                alert("กรุณาระบุชื่อกระเป๋าเงิน");
-                return;
-            }
-
-            if (editId) {
-                const w = appData.wallets.find(item => item.id === editId);
-                if (w) {
-                    w.name = name;
-                    w.type = type;
-                    w.balance = balance;
-                }
-            } else {
-                const newW = {
-                    id: 'w_' + Date.now(),
-                    name: name,
-                    type: type,
-                    balance: balance,
-                    icon: type === 'bank' ? 'fa-building-columns' : (type === 'cash' ? 'fa-money-bill-wave' : 'fa-credit-card')
-                };
-                appData.wallets.push(newW);
-            }
-
-            saveData();
-            closeModal('addWalletModal');
-            document.getElementById('editWalletId').value = '';
-            document.getElementById('newWalletName').value = '';
-            document.getElementById('newWalletBalance').value = '';
-            document.getElementById('walletModalTitle').innerText = "เพิ่มกระเป๋าเงินใหม่";
-        }
-
-        function deleteWallet(id) {
-            if (appData.wallets.length <= 1) {
-                alert("ต้องมีกระเป๋าเงินอย่างน้อย 1 บัญชี");
-                return;
-            }
-            if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบบัญชีนี้?")) {
-                appData.wallets = appData.wallets.filter(w => w.id !== id);
-                saveData();
+            const newBal = prompt(`แก้ไขยอดเงินคงเหลือสำหรับกระเป๋า "${w.name}":`, w.balance);
+            if (newBal !== null && !isNaN(parseFloat(newBal))) {
+                w.balance = parseFloat(newBal);
+                saveLocalAndAutoSync();
+                loadAllData();
             }
         }
 
-        // TRANSACTION ENGINE
-        function setTxType(type) {
-            currentTxType = type;
-            const btnExp = document.getElementById('btnTypeExpense');
-            const btnInc = document.getElementById('btnTypeIncome');
-
-            if (type === 'expense') {
-                btnExp.className = "py-2 rounded-xl text-xs font-semibold bg-rose-500 text-white transition";
-                btnInc.className = "py-2 rounded-xl text-xs font-semibold text-themeMuted hover:text-themeText transition";
-            } else {
-                btnInc.className = "py-2 rounded-xl text-xs font-semibold bg-emerald-600 text-white transition";
-                btnExp.className = "py-2 rounded-xl text-xs font-semibold text-themeMuted hover:text-themeText transition";
-            }
-            populateSelects();
-        }
-
-        function populateSelects() {
-            const wSelect = document.getElementById('txWalletSelect');
-            const cSelect = document.getElementById('txCategorySelect');
-            const tfFrom = document.getElementById('transferFromSelect');
-            const tfTo = document.getElementById('transferToSelect');
-
-            wSelect.innerHTML = '';
-            tfFrom.innerHTML = '';
-            tfTo.innerHTML = '';
-            appData.wallets.forEach(w => {
-                wSelect.innerHTML += `<option value="${w.id}">${w.name} (฿${w.balance})</option>`;
-                tfFrom.innerHTML += `<option value="${w.id}">${w.name}</option>`;
-                tfTo.innerHTML += `<option value="${w.id}">${w.name}</option>`;
-            });
-
-            cSelect.innerHTML = '';
-            appData.categories
-                .filter(c => c.type === currentTxType)
-                .forEach(c => {
-                    cSelect.innerHTML += `<option value="${c.id}">${c.name}</option>`;
-                });
-        }
-
-        function saveTransaction() {
-            const amount = parseFloat(document.getElementById('txAmount').value);
-            const walletId = document.getElementById('txWalletSelect').value;
-            const categoryId = document.getElementById('txCategorySelect').value;
-            const date = document.getElementById('txDate').value;
-            const tag = document.getElementById('txTag').value.trim();
-            const note = document.getElementById('txNote').value.trim();
-
-            if (!amount || amount <= 0) {
-                alert("กรุณากรอกจำนวนเงินให้ถูกต้อง");
-                return;
-            }
-
-            const wallet = appData.wallets.find(w => w.id === walletId);
-            if (wallet) {
-                if (currentTxType === 'expense') wallet.balance = Number(wallet.balance) - amount;
-                else wallet.balance = Number(wallet.balance) + amount;
-            }
-
-            const newTx = {
-                id: 't_' + Date.now(),
-                walletId,
-                categoryId,
-                type: currentTxType,
-                amount,
-                date,
-                tag,
-                note
-            };
-
-            appData.transactions.unshift(newTx);
-            saveData();
-            closeModal('addTxModal');
-            document.getElementById('txAmount').value = '';
-            document.getElementById('txNote').value = '';
-        }
-
-        function renderTransactions() {
-            const list = document.getElementById('recentTxList');
-            document.getElementById('txCountText').innerText = `${appData.transactions.length} รายการ`;
-            list.innerHTML = '';
-
-            if (appData.transactions.length === 0) {
-                list.innerHTML = `<div class="text-center text-xs text-themeMuted py-6">ยังไม่มีรายการบันทึก</div>`;
-                return;
-            }
-
-            appData.transactions.slice(0, 15).forEach(t => {
-                const cat = appData.categories.find(c => c.id === t.categoryId) || { name: 'ทั่วไป', icon: 'fa-tag', color: '#d97706' };
-                const wallet = appData.wallets.find(w => w.id === t.walletId) || { name: 'กระเป๋า' };
-                const isExp = t.type === 'expense';
-
-                const item = document.createElement('div');
-                item.className = 'glass-card p-3 rounded-2xl flex items-center justify-between';
-                item.innerHTML = `
-                    <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 rounded-2xl bg-themeSub flex items-center justify-center text-base" style="color: ${cat.color}">
-                            <i class="fa-solid ${cat.icon}"></i>
-                        </div>
-                        <div>
-                            <div class="flex items-center space-x-2">
-                                <h4 class="text-xs font-semibold text-themeText">${cat.name}</h4>
-                                ${t.tag ? `<span class="text-[9px] px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-600 font-medium">${t.tag}</span>` : ''}
-                            </div>
-                            <p class="text-[10px] text-themeMuted">${t.note || wallet.name} • ${t.date}</p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-xs font-bold ${isExp ? 'text-rose-500' : 'text-emerald-600'} balance-text">
-                            ${isExp ? '-' : '+'}฿${Number(t.amount).toLocaleString('th-TH', {minimumFractionDigits: 2})}
-                        </p>
-                        <button onclick="deleteTx('${t.id}')" class="text-[10px] text-themeMuted hover:text-rose-500"><i class="fa-solid fa-trash"></i></button>
-                    </div>
-                `;
-                list.appendChild(item);
-            });
-        }
-
-        function deleteTx(id) {
-            const tx = appData.transactions.find(t => t.id === id);
-            if (tx) {
-                const wallet = appData.wallets.find(w => w.id === tx.walletId);
-                if (wallet) {
-                    if (tx.type === 'expense') wallet.balance = Number(wallet.balance) + Number(tx.amount);
-                    else wallet.balance = Number(wallet.balance) - Number(tx.amount);
-                }
-                appData.transactions = appData.transactions.filter(t => t.id !== id);
-                saveData();
-            }
-        }
-
-        // TRANSFER FUNDS ENGINE
-        function executeTransfer() {
-            const fromId = document.getElementById('transferFromSelect').value;
-            const toId = document.getElementById('transferToSelect').value;
-            const amount = parseFloat(document.getElementById('transferAmount').value);
-            const fee = parseFloat(document.getElementById('transferFee').value) || 0;
-
-            if (fromId === toId) {
-                alert("กระเป๋าต้นทางและปลายทางต้องไม่เป็นใบเดียวกัน");
-                return;
-            }
-            if (!amount || amount <= 0) {
-                alert("ระบุจำนวนเงินที่ถูกต้อง");
-                return;
-            }
-
-            const wFrom = appData.wallets.find(w => w.id === fromId);
-            const wTo = appData.wallets.find(w => w.id === toId);
-
-            if (wFrom && wTo) {
-                wFrom.balance = Number(wFrom.balance) - (amount + fee);
-                wTo.balance = Number(wTo.balance) + amount;
-
-                saveData();
-                closeModal('transferModal');
-                alert(`โอนเงิน ฿${amount.toLocaleString()} จาก ${wFrom.name} ไป ${wTo.name} สำเร็จ!`);
-            }
-        }
-
-        // CALENDAR & CHART ENGINE
+        // CALENDAR & CHART
         function renderCalendar() {
-            const yearMonth = document.getElementById('calendarMonthPicker').value;
-            if (!yearMonth) return;
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = '';
+            const monthVal = document.getElementById('calendarMonthPicker').value || new Date().toISOString().slice(0,7);
 
-            const [year, month] = yearMonth.split('-').map(Number);
+            const [year, month] = monthVal.split('-').map(Number);
             const firstDay = new Date(year, month - 1, 1).getDay();
             const daysInMonth = new Date(year, month, 0).getDate();
 
-            const grid = document.getElementById('calendarGrid');
-            grid.innerHTML = '';
+            for (let i = 0; i < firstDay; i++) grid.innerHTML += `<div class="h-9"></div>`;
 
-            for (let i = 0; i < firstDay; i++) {
-                grid.innerHTML += `<div class="h-12"></div>`;
-            }
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayTxs = transactions.filter(t => t.date === dateStr);
+                let dayExpense = 0;
+                dayTxs.forEach(t => { if(t.type === 'expense') dayExpense += t.amount; });
 
-            const dailyMap = {};
-            appData.transactions.forEach(t => {
-                if (t.type === 'expense' && t.date.startsWith(yearMonth)) {
-                    const dayNum = parseInt(t.date.split('-')[2], 10);
-                    dailyMap[dayNum] = (dailyMap[dayNum] || 0) + Number(t.amount);
-                }
-            });
-
-            for (let d = 1; d <= daysInMonth; d++) {
-                const exp = dailyMap[d] || 0;
-                const dateCell = document.createElement('div');
-                dateCell.className = `h-12 rounded-xl p-1 flex flex-col justify-between items-center text-[10px] border border-themeBorder ${exp > 0 ? 'bg-amber-500/10 border-amber-500/20' : 'bg-themeSub/30'}`;
-                dateCell.innerHTML = `
-                    <span class="font-medium ${exp > 0 ? 'text-amber-600 font-bold' : 'text-themeMuted'}">${d}</span>
-                    ${exp > 0 ? `<span class="text-[8px] font-bold text-rose-500 balance-text">-฿${exp >= 1000 ? (exp/1000).toFixed(1)+'k' : exp}</span>` : ''}
+                grid.innerHTML += `
+                    <div class="h-10 rounded-xl bg-themeSub/40 border border-themeBorder flex flex-col items-center justify-center p-0.5">
+                        <span class="text-[10px] text-themeText font-medium">${day}</span>
+                        ${dayExpense > 0 ? `<span class="text-[8px] text-rose-500 font-bold">-฿${dayExpense >= 1000 ? (dayExpense/1000).toFixed(1) + 'k' : dayExpense}</span>` : ''}
+                    </div>
                 `;
-                grid.appendChild(dateCell);
             }
-
-            renderCategoryChart(yearMonth);
         }
 
-        function renderCategoryChart(yearMonth) {
+        let categoryChartObj = null;
+        function initChart() {
             const ctx = document.getElementById('categoryChart').getContext('2d');
-            const catTotals = {};
-            appData.transactions.forEach(t => {
-                if (t.type === 'expense' && t.date.startsWith(yearMonth)) {
-                    catTotals[t.categoryId] = (catTotals[t.categoryId] || 0) + Number(t.amount);
-                }
+            let catMap = {};
+            categories.forEach(c => catMap[c] = 0);
+            transactions.forEach(t => {
+                if(t.type === 'expense' && catMap[t.category] !== undefined) catMap[t.category] += t.amount;
             });
 
-            const labels = [];
-            const data = [];
-            const colors = [];
-
-            Object.keys(catTotals).forEach(catId => {
-                const cat = appData.categories.find(c => c.id === catId);
-                if (cat) {
-                    labels.push(cat.name);
-                    data.push(catTotals[catId]);
-                    colors.push(cat.color || '#d97706');
-                }
-            });
-
-            if (categoryChartInstance) categoryChartInstance.destroy();
-
-            if (data.length === 0) {
-                data.push(1);
-                labels.push("ไม่มีข้อมูล");
-                colors.push("#e5e7eb");
-            }
-
-            categoryChartInstance = new Chart(ctx, {
+            if(categoryChartObj) categoryChartObj.destroy();
+            categoryChartObj = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
-                    labels: labels,
+                    labels: Object.keys(catMap),
                     datasets: [{
-                        data: data,
-                        backgroundColor: colors,
+                        data: Object.values(catMap),
+                        backgroundColor: ['#ff79c6', '#bd93f9', '#8be9fd', '#50fa7b', '#f1fa8c', '#ffb86c', '#ff5555'],
                         borderWidth: 0
                     }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right',
-                            labels: {
-                                font: { family: 'Kanit', size: 10 }
-                            }
-                        }
-                    },
-                    cutout: '70%'
-                }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
         }
 
-        // REQUIREMENT 3: DEBTS & INSTALLMENTS ENGINE (Full Interactive)
+        // DEBTS & INSTALLMENTS
         function renderDebtsAndInstallments() {
-            const debtList = document.getElementById('debtList');
-            debtList.innerHTML = '';
-
-            if (appData.debts.length === 0) {
-                debtList.innerHTML = `<div class="text-center text-xs text-themeMuted py-3">ไม่มีรายการยืม-คืนเงิน</div>`;
-            } else {
-                appData.debts.forEach(d => {
-                    const isLent = d.type === 'lent';
-                    const el = document.createElement('div');
-                    el.className = 'glass-card p-3 rounded-2xl flex items-center justify-between';
-                    el.innerHTML = `
-                        <div class="flex items-center space-x-3">
-                            <div class="w-8 h-8 rounded-xl ${isLent ? 'bg-emerald-500/20 text-emerald-600' : 'bg-rose-500/20 text-rose-500'} flex items-center justify-center text-xs">
-                                <i class="fa-solid ${isLent ? 'fa-arrow-left-long' : 'fa-arrow-right-long'}"></i>
-                            </div>
-                            <div>
-                                <h4 class="text-xs font-semibold text-themeText">${d.person}</h4>
-                                <p class="text-[10px] text-themeMuted">${isLent ? 'ลูกหนี้ (ต้องคืนเรา)' : 'เจ้าหนี้ (เราต้องคืน)'}</p>
-                            </div>
+            const dContainer = document.getElementById('debtList');
+            dContainer.innerHTML = debts.length === 0 ? '<p class="text-xs text-themeMuted text-center">ไม่มีรายการยืม-คืน</p>' : '';
+            debts.forEach(d => {
+                dContainer.innerHTML += `
+                    <div class="glass-card p-3 rounded-2xl flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold text-themeText">${d.person} (${d.type === 'lend' ? 'ให้ยืม' : 'ยืมเขา'})</p>
+                            <p class="text-[10px] text-themeMuted">คงเหลือ ฿${d.balance.toLocaleString()}</p>
                         </div>
-                        <div class="text-right flex flex-col items-end">
-                            <p class="text-xs font-bold ${isLent ? 'text-emerald-600' : 'text-rose-500'} balance-text">฿${Number(d.amount).toLocaleString()}</p>
-                            <div class="flex gap-2 mt-1">
-                                <button onclick="openEditDebtModal('${d.id}')" class="text-[9px] text-amber-600 hover:underline">แก้ไข</button>
-                                <button onclick="deleteDebt('${d.id}')" class="text-[9px] text-rose-500 hover:underline">ชำระแล้ว/ลบ</button>
-                            </div>
-                        </div>
-                    `;
-                    debtList.appendChild(el);
-                });
-            }
-
-            const instList = document.getElementById('installmentList');
-            instList.innerHTML = '';
-
-            if (appData.installments.length === 0) {
-                instList.innerHTML = `<div class="text-center text-xs text-themeMuted py-3">ไม่มีรายการผ่อนชำระ</div>`;
-            } else {
-                appData.installments.forEach(i => {
-                    const monthly = (i.total / i.months).toFixed(0);
-                    const pct = Math.round((i.paidMonths / i.months) * 100);
-                    const el = document.createElement('div');
-                    el.className = 'glass-card p-3 rounded-2xl space-y-2';
-                    el.innerHTML = `
-                        <div class="flex justify-between items-center text-xs">
-                            <span class="font-semibold text-themeText">${i.title}</span>
-                            <span class="text-amber-600 font-bold">ผ่อน ฿${Number(monthly).toLocaleString()}/เดือน</span>
-                        </div>
-                        <div class="w-full bg-themeSub rounded-full h-2 overflow-hidden border border-themeBorder">
-                            <div class="bg-amber-500 h-full rounded-full transition-all duration-300" style="width: ${pct}%"></div>
-                        </div>
-                        <div class="flex justify-between items-center text-[10px] text-themeMuted">
-                            <span>จ่ายแล้ว ${i.paidMonths}/${i.months} งวด (${pct}%)</span>
-                            <div class="flex gap-2">
-                                <button onclick="payInstallment('${i.id}')" class="text-amber-600 font-bold hover:underline">+ จ่ายงวดนี้</button>
-                                <button onclick="openEditInstallmentModal('${i.id}')" class="text-themeMuted hover:underline">แก้ไข</button>
-                                <button onclick="deleteInstallment('${i.id}')" class="text-rose-500 hover:underline">ลบ</button>
-                            </div>
-                        </div>
-                    `;
-                    instList.appendChild(el);
-                });
-            }
+                        <button onclick="payDebt('${d.id}')" class="px-3 py-1 rounded-xl bg-amber-600 text-white text-xs">ชำระคืน</button>
+                    </div>
+                `;
+            });
         }
 
-        function openEditDebtModal(id) {
-            const d = appData.debts.find(item => item.id === id);
+        function payDebt(id) {
+            const d = debts.find(item => item.id === id);
             if (!d) return;
-            document.getElementById('debtModalTitle').innerText = "แก้ไขรายการยืม-คืนเงิน";
-            document.getElementById('editDebtId').value = d.id;
-            document.getElementById('debtPerson').value = d.person;
-            document.getElementById('debtAmount').value = d.amount;
-            document.getElementById('debtType').value = d.type;
-            openModal('addDebtModal');
+            const amt = prompt(`ระบุจำนวนเงินที่คืนให้ "${d.person}":`, d.balance);
+            if (amt !== null && !isNaN(parseFloat(amt))) {
+                d.balance -= parseFloat(amt);
+                if (d.balance <= 0) debts = debts.filter(item => item.id !== id);
+                saveLocalAndAutoSync();
+                loadAllData();
+            }
         }
 
-        function saveDebt() {
-            const editId = document.getElementById('editDebtId').value;
-            const person = document.getElementById('debtPerson').value.trim();
-            const amount = parseFloat(document.getElementById('debtAmount').value);
-            const type = document.getElementById('debtType').value;
-
-            if (!person || !amount) {
-                alert("กรุณากรอกข้อมูลให้ครบถ้วน");
-                return;
-            }
-
-            if (editId) {
-                const d = appData.debts.find(item => item.id === editId);
-                if (d) {
-                    d.person = person;
-                    d.amount = amount;
-                    d.type = type;
-                }
+        // BACKUP & EXPORT ACTIONS
+        function switchBackupTab(tab) {
+            if (tab === 'backup') {
+                document.getElementById('backupTabContent').classList.remove('hidden');
+                document.getElementById('restoreTabContent').classList.add('hidden');
             } else {
-                appData.debts.push({ id: 'd_' + Date.now(), person, amount, type });
+                document.getElementById('restoreTabContent').classList.remove('hidden');
+                document.getElementById('backupTabContent').classList.add('hidden');
             }
-
-            saveData();
-            closeModal('addDebtModal');
-            document.getElementById('editDebtId').value = '';
-            document.getElementById('debtPerson').value = '';
-            document.getElementById('debtAmount').value = '';
-            document.getElementById('debtModalTitle').innerText = "เพิ่มรายการยืม-คืนเงิน";
         }
 
-        function deleteDebt(id) {
-            appData.debts = appData.debts.filter(d => d.id !== id);
-            saveData();
-        }
-
-        function openEditInstallmentModal(id) {
-            const i = appData.installments.find(item => item.id === id);
-            if (!i) return;
-            document.getElementById('installmentModalTitle').innerText = "แก้ไขรายการผ่อนชำระ";
-            document.getElementById('editInstallmentId').value = i.id;
-            document.getElementById('installmentTitle').value = i.title;
-            document.getElementById('installmentTotal').value = i.total;
-            document.getElementById('installmentMonths').value = i.months;
-            openModal('addInstallmentModal');
-        }
-
-        function saveInstallment() {
-            const editId = document.getElementById('editInstallmentId').value;
-            const title = document.getElementById('installmentTitle').value.trim();
-            const total = parseFloat(document.getElementById('installmentTotal').value);
-            const months = parseInt(document.getElementById('installmentMonths').value, 10);
-
-            if (!title || !total || !months) {
-                alert("กรุณากรอกข้อมูลผ่อนชำระให้ครบถ้วน");
-                return;
-            }
-
-            if (editId) {
-                const i = appData.installments.find(item => item.id === editId);
-                if (i) {
-                    i.title = title;
-                    i.total = total;
-                    i.months = months;
-                }
+        function execBackupAction() {
+            const dest = document.getElementById('backupDestination').value;
+            if (dest === 'drive') {
+                backupToGoogleDrive();
             } else {
-                appData.installments.push({ id: 'i_' + Date.now(), title, total, months, paidMonths: 0 });
-            }
-
-            saveData();
-            closeModal('addInstallmentModal');
-            document.getElementById('editInstallmentId').value = '';
-            document.getElementById('installmentTitle').value = '';
-            document.getElementById('installmentTotal').value = '';
-            document.getElementById('installmentMonths').value = '';
-            document.getElementById('installmentModalTitle').innerText = "เพิ่มรายการผ่อนชำระ";
-        }
-
-        function payInstallment(id) {
-            const inst = appData.installments.find(i => i.id === id);
-            if (inst && inst.paidMonths < inst.months) {
-                inst.paidMonths += 1;
-                saveData();
-            }
-        }
-
-        function deleteInstallment(id) {
-            appData.installments = appData.installments.filter(i => i.id !== id);
-            saveData();
-        }
-
-        // REQUIREMENT 4: EXPORT DATA ENGINE (Cream Gold Theme Modal)
-        function setExportFormat(fmt) {
-            currentExportFormat = fmt;
-            const btnXls = document.getElementById('expTabExcel');
-            const btnCsv = document.getElementById('expTabCsv');
-            const btnPdf = document.getElementById('expTabPdf');
-            const btnConfirm = document.getElementById('btnConfirmExport');
-
-            btnXls.className = "py-2 rounded-xl text-amber-800 hover:bg-amber-200/50 transition";
-            btnCsv.className = "py-2 rounded-xl text-amber-800 hover:bg-amber-200/50 transition";
-            btnPdf.className = "py-2 rounded-xl text-amber-800 hover:bg-amber-200/50 transition";
-
-            if (fmt === 'excel') {
-                btnXls.className = "py-2 rounded-xl bg-amber-600 text-white transition shadow-sm";
-                btnConfirm.innerHTML = `<i class="fa-solid fa-download"></i> ส่งออกไฟล์ Excel (.xlsx)`;
-            } else if (fmt === 'csv') {
-                btnCsv.className = "py-2 rounded-xl bg-amber-600 text-white transition shadow-sm";
-                btnConfirm.innerHTML = `<i class="fa-solid fa-download"></i> ส่งออกไฟล์ CSV (.csv)`;
-            } else if (fmt === 'pdf') {
-                btnPdf.className = "py-2 rounded-xl bg-amber-600 text-white transition shadow-sm";
-                btnConfirm.innerHTML = `<i class="fa-solid fa-download"></i> ส่งออกไฟล์ PDF (.pdf)`;
-            }
-        }
-
-        function getFilteredExportData() {
-            const range = document.getElementById('exportTimeRange').value;
-            const sort = document.getElementById('exportSortOrder').value;
-
-            let data = [...appData.transactions];
-            const now = new Date();
-            const thisMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-            
-            const lastMonthObj = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-            const lastMonthStr = `${lastMonthObj.getFullYear()}-${String(lastMonthObj.getMonth() + 1).padStart(2, '0')}`;
-
-            if (range === 'thisMonth') {
-                data = data.filter(t => t.date.startsWith(thisMonthStr));
-            } else if (range === 'lastMonth') {
-                data = data.filter(t => t.date.startsWith(lastMonthStr));
-            }
-
-            data.sort((a, b) => {
-                if (sort === 'asc') return new Date(a.date) - new Date(b.date);
-                return new Date(b.date) - new Date(a.date);
-            });
-
-            return data;
-        }
-
-        function updateExportPreview() {
-            const data = getFilteredExportData();
-            document.getElementById('expSummaryCount').innerText = `${data.length} รายการ`;
-
-            let expTotal = 0;
-            data.forEach(t => { if (t.type === 'expense') expTotal += Number(t.amount); });
-            document.getElementById('expSummaryExpense').innerText = `฿${expTotal.toLocaleString()}`;
-
-            let lentTotal = appData.debts.filter(d => d.type === 'lent').reduce((sum, d) => sum + Number(d.amount), 0);
-            document.getElementById('expSummaryLent').innerText = `฿${lentTotal.toLocaleString()}`;
-
-            const table = document.getElementById('exportPreviewTable');
-            table.innerHTML = `
-                <thead>
-                    <tr class="border-b border-amber-200 text-amber-900 font-bold">
-                        <th class="py-1">ลำดับ</th>
-                        <th class="py-1">ชื่อ/บันทึก</th>
-                        <th class="py-1">หมวดหมู่</th>
-                        <th class="py-1 text-right">จำนวน</th>
-                    </tr>
-                </thead>
-                <tbody>
-                ${data.slice(0, 3).map((t, idx) => {
-                    const cat = appData.categories.find(c => c.id === t.categoryId)?.name || 'ทั่วไป';
-                    return `
-                        <tr class="border-b border-amber-100 text-amber-800">
-                            <td class="py-1">${idx + 1}</td>
-                            <td class="py-1">${t.note || t.tag || 'รายการ'}</td>
-                            <td class="py-1">${cat}</td>
-                            <td class="py-1 text-right font-bold ${t.type === 'expense' ? 'text-rose-600' : 'text-emerald-600'}">
-                                ${t.type === 'expense' ? '-' : '+'}฿${Number(t.amount).toLocaleString()}
-                            </td>
-                        </tr>
-                    `;
-                }).join('')}
-                </tbody>
-            `;
-        }
-
-        function executeDataExport() {
-            const data = getFilteredExportData();
-            if (data.length === 0) {
-                alert("ไม่มีรายการข้อมูลส่งออกตามเงื่อนไขที่เลือก");
-                return;
-            }
-
-            const checkIdx = document.getElementById('colIndex').checked;
-            const checkTitle = document.getElementById('colTitle').checked;
-            const checkCat = document.getElementById('colCategory').checked;
-            const checkType = document.getElementById('colType').checked;
-            const checkAmt = document.getElementById('colAmount').checked;
-            const checkDate = document.getElementById('colDate').checked;
-            const checkWal = document.getElementById('colWallet').checked;
-            const checkTag = document.getElementById('colTag').checked;
-            const checkNote = document.getElementById('colNote').checked;
-
-            const preparedRows = data.map((t, idx) => {
-                const cat = appData.categories.find(c => c.id === t.categoryId)?.name || 'ทั่วไป';
-                const wal = appData.wallets.find(w => w.id === t.walletId)?.name || 'กระเป๋า';
-                const row = {};
-
-                if (checkIdx) row['ลำดับ'] = idx + 1;
-                if (checkTitle) row['ชื่อรายการ'] = t.note || t.tag || 'รายการ';
-                if (checkCat) row['หมวดหมู่'] = cat;
-                if (checkType) row['ประเภท'] = t.type === 'expense' ? 'รายจ่าย' : 'รายรับ';
-                if (checkAmt) row['จำนวนเงิน'] = Number(t.amount);
-                if (checkDate) row['วันที่'] = t.date;
-                if (checkWal) row['กระเป๋าเงิน'] = wal;
-                if (checkTag) row['แท็ก'] = t.tag || '';
-                if (checkNote) row['บันทึกช่วยจำ'] = t.note || '';
-
-                return row;
-            });
-
-            if (currentExportFormat === 'excel') {
-                const worksheet = XLSX.utils.json_to_sheet(preparedRows);
-                const workbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(workbook, worksheet, "Transactions");
-                XLSX.writeFile(workbook, `MoneyPod_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
-            } else if (currentExportFormat === 'csv') {
-                const worksheet = XLSX.utils.json_to_sheet(preparedRows);
-                const csvOutput = XLSX.utils.sheet_to_csv(worksheet);
-                const blob = new Blob(["\ufeff" + csvOutput], { type: 'text/csv;charset=utf-8;' });
+                const data = { wallets, transactions, debts, installments, monthlyBudget, pin };
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `MoneyPod_Export_${new Date().toISOString().split('T')[0]}.csv`;
+                a.download = `MoneyPod_Backup_${new Date().toISOString().slice(0,10)}.json`;
+                a.click();
+            }
+        }
+
+        function importJSON(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const data = JSON.parse(evt.target.result);
+                    if (data.wallets) localStorage.setItem('MP_WALLETS', JSON.stringify(data.wallets));
+                    if (data.transactions) localStorage.setItem('MP_TXS', JSON.stringify(data.transactions));
+                    if (data.debts) localStorage.setItem('MP_DEBTS', JSON.stringify(data.debts));
+                    if (data.installments) localStorage.setItem('MP_INSTALLMENTS', JSON.stringify(data.installments));
+                    if (data.monthlyBudget) localStorage.setItem('MP_BUDGET', data.monthlyBudget);
+
+                    loadAllData();
+                    closeModal('backupRestoreModal');
+                    alert('นำเข้าไฟล์สำรองข้อมูลสำเร็จ!');
+                } catch (err) { alert('รูปแบบไฟล์ JSON ไม่ถูกต้อง'); }
+            };
+            reader.readAsText(file);
+        }
+
+        function setExportFormat(fmt) { currentExportFormat = fmt; }
+        function execExport() {
+            if (currentExportFormat === 'xlsx') {
+                const ws = XLSX.utils.json_to_sheet(transactions);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Transactions");
+                XLSX.writeFile(wb, "MoneyPod_Report.xlsx");
+            } else if (currentExportFormat === 'csv') {
+                let csv = 'ID,Type,Amount,Category,Date,Note\n';
+                transactions.forEach(t => {
+                    csv += `"${t.id}","${t.type}",${t.amount},"${t.category}","${t.date}","${t.note || ''}"\n`;
+                });
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = "MoneyPod_Report.csv";
                 a.click();
             } else if (currentExportFormat === 'pdf') {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
                 doc.text("MoneyPod Expense Report", 14, 15);
-                const headers = Object.keys(preparedRows[0]);
-                const body = preparedRows.map(r => Object.values(r));
-                
-                doc.autoTable({
-                    head: [headers],
-                    body: body,
-                    startY: 20,
-                    theme: 'grid'
-                });
-                doc.save(`MoneyPod_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+                const tableData = transactions.map(t => [t.date, t.type, t.category, t.amount]);
+                doc.autoTable({ head: [['Date', 'Type', 'Category', 'Amount']], body: tableData, startY: 20 });
+                doc.save("MoneyPod_Report.pdf");
             }
-
             closeModal('exportModal');
         }
 
-        // REQUIREMENT 5: BACKUP & RESTORE ENGINE (รูปที่ 2 และ 3)
-        function setBackupMode(mode) {
-            const sideBk = document.getElementById('backupSideView');
-            const sideRt = document.getElementById('restoreSideView');
-            const tabBk = document.getElementById('tabBackupMode');
-            const tabRt = document.getElementById('tabRestoreMode');
-
-            if (mode === 'backup') {
-                sideBk.classList.remove('hidden');
-                sideRt.classList.add('hidden');
-                tabBk.className = "py-2 rounded-xl bg-amber-600 text-white transition shadow-sm";
-                tabRt.className = "py-2 rounded-xl text-themeMuted hover:text-themeText transition";
-            } else {
-                sideRt.classList.remove('hidden');
-                sideBk.classList.add('hidden');
-                tabRt.className = "py-2 rounded-xl bg-amber-600 text-white transition shadow-sm";
-                tabBk.className = "py-2 rounded-xl text-themeMuted hover:text-themeText transition";
+        // SECURITY PIN & UTILS
+        function pressPin(n) {
+            if (enteredPin.length < 4) {
+                enteredPin += n;
+                updatePinDots();
+                if (enteredPin.length === 4) setTimeout(checkPin, 200);
             }
         }
-
-        function runStartBackup() {
-            const dest = document.getElementById('backupDestination').value;
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
-            const fileName = `moneypod_backup_${new Date().toISOString().split('T')[0]}.json`;
-
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", fileName);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
-
-            appData.backupHistory.unshift({
-                id: 'bh_' + Date.now(),
-                date: new Date().toLocaleString('th-TH'),
-                type: dest === 'local' ? 'Local Storage' : (dest === 'icloud' ? 'iCloud' : 'Google Drive'),
-                size: (JSON.stringify(appData).length / 1024).toFixed(1) + ' KB'
-            });
-            saveData();
-            alert("เริ่มกระบวนการสำรองข้อมูลเรียบร้อยแล้ว!");
-        }
-
-        function renderBackupHistory() {
-            const box = document.getElementById('backupHistoryBox');
-            if (!appData.backupHistory || appData.backupHistory.length === 0) {
-                box.innerHTML = `<p class="text-center text-themeMuted py-2">ยังไม่มีประวัติการสำรองข้อมูล</p>`;
-                return;
-            }
-
-            box.innerHTML = appData.backupHistory.slice(0, 3).map(bh => `
-                <div class="flex justify-between items-center py-1 border-b border-themeBorder/50 last:border-0">
-                    <div>
-                        <p class="font-semibold text-themeText">${bh.type}</p>
-                        <p class="text-[9px] text-themeMuted">${bh.date}</p>
-                    </div>
-                    <span class="text-amber-600 font-bold">${bh.size}</span>
-                </div>
-            `).join('');
-        }
-
-        function restoreFromFile(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const parsed = JSON.parse(e.target.result);
-                    if (parsed.wallets && parsed.transactions) {
-                        selectedRestoreFileContent = parsed;
-                        document.getElementById('restoreStatusTitle').innerText = file.name;
-                        document.getElementById('restoreStatusDetail').innerText = `พร้อมกู้คืน: ${parsed.transactions.length} รายการ, ${parsed.wallets.length} กระเป๋า`;
-                        
-                        const btn = document.getElementById('btnConfirmRestore');
-                        btn.disabled = false;
-                        btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                    } else {
-                        alert("ไฟล์สำรองข้อมูลไม่ถูกต้อง");
-                    }
-                } catch (err) {
-                    alert("เกิดข้อผิดพลาดในการอ่านไฟล์");
-                }
-            };
-            reader.readAsText(file);
-        }
-
-        function restoreFromGoogleDrive() {
-            alert("เชื่อมต่อ Google Drive และดึงไฟล์สำรองข้อมูลล่าสุดเรียบร้อยแล้ว!");
-            document.getElementById('restoreStatusTitle').innerText = "gdrive_moneypod_latest.json";
-            document.getElementById('restoreStatusDetail').innerText = "พร้อมกู้คืนจาก Cloud Google Drive";
-            
-            const btn = document.getElementById('btnConfirmRestore');
-            btn.disabled = false;
-            btn.classList.remove('opacity-50', 'cursor-not-allowed');
-        }
-
-        function refreshRestoreStatus() {
-            selectedRestoreFileContent = null;
-            document.getElementById('restoreStatusTitle').innerText = "ยังไม่ได้เลือกไฟล์";
-            document.getElementById('restoreStatusDetail').innerText = "โปรดเลือกไฟล์สำรองข้อมูล JSON เพื่อเริ่มกระบวนการกู้คืน";
-            const btn = document.getElementById('btnConfirmRestore');
-            btn.disabled = true;
-            btn.classList.add('opacity-50', 'cursor-not-allowed');
-        }
-
-        function confirmRestoreProcess() {
-            if (selectedRestoreFileContent && confirm("คุณแน่ใจหรือไม่ว่าต้องการกู้คืนข้อมูล? ข้อมูลปัจจุบันจะถูกเขียนทับ")) {
-                appData = selectedRestoreFileContent;
-                saveData();
-                alert("กู้คืนข้อมูลสำเร็จเรียบร้อย!");
-                closeModal('backupRestoreModal');
-                location.reload();
-            }
-        }
-
-        // OCR SLIP SCANNER ENGINE
-        function processSlipImage(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const previewImg = document.getElementById('previewImg');
-            const status = document.getElementById('ocrStatus');
-
-            previewImg.src = URL.createObjectURL(file);
-            previewImg.classList.remove('hidden');
-            status.classList.remove('hidden');
-
-            Tesseract.recognize(file, 'tha+eng', {
-                logger: m => console.log(m)
-            }).then(({ data: { text } }) => {
-                status.classList.add('hidden');
-                const amountMatch = text.match(/([0-9]{1,3}(?:,[0-9]{3})*(\.[0-9]{2}))/);
-                if (amountMatch) {
-                    const parsedAmount = parseFloat(amountMatch[0].replace(',', ''));
-                    alert(`สแกนสลิปสำเร็จ! พบยอดเงิน: ฿${parsedAmount}`);
-                    closeModal('scanModal');
-                    openModal('addTxModal');
-                    document.getElementById('txAmount').value = parsedAmount;
-                } else {
-                    alert("สแกนเสร็จสิ้น ไม่พบตัวเลขยอดเงินชัดเจน กรอกข้อมูลด้วยตนเอง");
-                    closeModal('scanModal');
-                    openModal('addTxModal');
-                }
-            }).catch(err => {
-                status.classList.add('hidden');
-                alert("ไม่สามารถอ่านข้อมูลจากรูปได้");
+        function clearPin() { enteredPin = enteredPin.slice(0, -1); updatePinDots(); }
+        function updatePinDots() {
+            document.querySelectorAll('.pin-dot').forEach((d, idx) => {
+                if (idx < enteredPin.length) d.classList.add('bg-amber-500');
+                else d.classList.remove('bg-amber-500');
             });
         }
-
-        // RESET ALL DATA
+        function checkPin() {
+            if (enteredPin === pin) {
+                document.getElementById('pinOverlay').classList.add('hidden');
+                enteredPin = ''; updatePinDots();
+            } else { alert('รหัส PIN ไม่ถูกต้อง'); enteredPin = ''; updatePinDots(); }
+        }
+        function simFaceID() { document.getElementById('pinOverlay').classList.add('hidden'); }
+        function changePinPrompt() {
+            const p = prompt('กรอกรหัส PIN ใหม่ 4 หลัก:');
+            if (p && p.length === 4 && !isNaN(p)) {
+                pin = p; saveLocalAndAutoSync();
+                document.getElementById('currentPinText').innerText = pin;
+                alert('เปลี่ยนรหัส PIN สำเร็จ');
+            }
+        }
+        function saveBudgetSetting() {
+            const b = parseFloat(document.getElementById('monthlyBudgetInput').value);
+            if (b && b >= 0) { monthlyBudget = b; saveLocalAndAutoSync(); renderDashboard(); alert('บันทึกงบประมาณสำเร็จ'); }
+        }
         function resetAllData() {
-            if (confirm("เตือน! ข้อมูลทั้งหมดจะถูกลบและรีเซ็ตกลับเป็นค่าเริ่มต้น คุณแน่ใจหรือไม่?")) {
-                localStorage.removeItem('MoneypodData');
-                appData = DEFAULT_STATE;
-                saveData();
+            if (confirm('คุณต้องการล้างข้อมูลทั้งหมดในเครื่องใช่หรือไม่?')) {
+                localStorage.clear();
                 location.reload();
             }
-        }
-
-        // MODAL UTILITIES
-        function openModal(id) {
-            document.getElementById(id).classList.remove('hidden');
-            if (id === 'exportModal') updateExportPreview();
-        }
-        function closeModal(id) {
-            document.getElementById(id).classList.add('hidden');
-        }
-        function openScanModal() {
-            document.getElementById('scanModal').classList.remove('hidden');
         }
     </script>
 </body>
