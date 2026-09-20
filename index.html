@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Cute Dark Expense Tracker</title>
+    <title>Expense Tracker</title>
     
     <!-- iOS PWA Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,7 +17,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Tesseract OCR -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
-    <!-- Google Fonts (Kanit & Mitr) -->
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Mitr:wght@300;400;500;600&display=swap" rel="stylesheet">
 
     <script>
@@ -70,11 +70,6 @@
         .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
         .pt-safe { padding-top: max(16px, env(safe-area-inset-top, 20px)); }
         
-        /* Modal Animation */
-        .modal-animate {
-            transition: opacity 0.25s ease, transform 0.25s ease;
-        }
-        /* Custom Native Input Styling for Dark Theme */
         input[type="date"]::-webkit-calendar-picker-indicator {
             filter: invert(1);
             opacity: 0.7;
@@ -131,10 +126,10 @@
             </div>
         </div>
         <div class="flex items-center gap-2">
-            <button onclick="togglePrivacyMode()" class="w-9 h-9 rounded-full glass-card flex items-center justify-center text-slate-300 hover:text-white active:scale-90 transition" title="ซ่อน/แสดง ยอดเงิน">
+            <button onclick="togglePrivacyMode()" class="w-9 h-9 rounded-full glass-card flex items-center justify-center text-slate-300 hover:text-white active:scale-90 transition">
                 <i id="privacyIcon" class="fa-solid fa-eye"></i>
             </button>
-            <button onclick="openSettingsModal()" class="w-9 h-9 rounded-full glass-card flex items-center justify-center text-slate-300 hover:text-white active:scale-90 transition" title="ตั้งค่า">
+            <button onclick="openSettingsModal()" class="w-9 h-9 rounded-full glass-card flex items-center justify-center text-slate-300 hover:text-white active:scale-90 transition">
                 <i class="fa-solid fa-gear"></i>
             </button>
         </div>
@@ -142,16 +137,12 @@
 
     <!-- Main Container -->
     <main class="flex-1 px-4 py-4 mb-24 max-w-md mx-auto w-full space-y-5">
-        
         <!-- PAGE 1: HOME PAGE -->
         <section id="pageHome" class="space-y-5">
-            
-            <!-- Summary Card -->
             <div class="glass-card rounded-3xl p-5 relative overflow-hidden border border-slate-700/50">
-                <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-neonPurple/20 rounded-full blur-3xl pointer-events-none"></div>
                 <div class="flex justify-between items-center mb-2">
                     <span class="text-xs font-mitr text-slate-400 flex items-center gap-1.5">
-                        <i class="fa-regular fa-calendar-check text-neonCyan"></i> ยอดสรุปประจำปี <span id="currentYearDisplay">2026</span>
+                        <i class="fa-regular fa-calendar-check text-neonCyan"></i> สรุปปี <span id="currentYearDisplay">2026</span>
                     </span>
                     <span id="savingsRateBadge" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-neonGreen/20 text-neonGreen border border-neonGreen/30">
                         ออมได้ 0%
@@ -173,133 +164,35 @@
                     </div>
                 </div>
 
-                <!-- Add Button -->
                 <button onclick="openAddTransactionModal('today')" class="w-full mt-4 py-3 rounded-2xl bg-gradient-to-r from-neonPink via-neonPurple to-neonCyan text-white font-bold text-sm shadow-lg neon-glow-pink active:scale-[0.98] transition flex items-center justify-center gap-2">
                     <i class="fa-solid fa-circle-plus text-lg"></i> บันทึกรายการวันนี้
                 </button>
             </div>
 
-            <!-- Budget Progress Widget -->
-            <div class="glass-card rounded-2xl p-4 space-y-2 border border-slate-700/40">
-                <div class="flex justify-between items-center text-xs">
-                    <span class="font-bold flex items-center gap-1.5"><i class="fa-solid fa-bullseye text-neonYellow"></i> งบประมาณเดือนนี้</span>
-                    <span id="budgetText" class="text-slate-400 text-[11px] privacy-target">฿0 / ฿0</span>
-                </div>
-                <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
-                    <div id="budgetProgressBar" class="bg-neonGreen h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
-                </div>
-            </div>
-
-            <!-- Bill Reminders Banner -->
-            <div class="glass-card rounded-2xl p-4 border border-slate-700/40 space-y-3">
-                <div class="flex justify-between items-center text-xs">
-                    <span class="font-bold flex items-center gap-1.5 text-neonYellow"><i class="fa-solid fa-bell"></i> รายการบิลใกล้ครบกำหนด</span>
-                    <button onclick="openAddBillModal()" class="text-[11px] text-neonCyan hover:underline">+ เพิ่มบิล</button>
-                </div>
-                <div id="billReminderList" class="space-y-2 text-xs">
-                    <!-- Dynamic Bill Items -->
-                </div>
-            </div>
-
-            <!-- Recent Transactions / Backdate Section -->
+            <!-- Recent Transactions -->
             <div class="space-y-3">
                 <div class="flex justify-between items-center">
-                    <h3 class="text-sm font-bold font-mitr text-slate-300 flex items-center gap-1.5">
-                        <i class="fa-solid fa-clock-rotate-left text-neonPurple"></i> ประวัติรายการล่าสุด
-                    </h3>
-                    <button onclick="openAddTransactionModal('backdate')" class="text-xs text-neonCyan hover:underline flex items-center gap-1">
-                        <i class="fa-regular fa-calendar-plus"></i> บันทึกย้อนหลัง
-                    </button>
+                    <h3 class="text-sm font-bold font-mitr text-slate-300">รายการล่าสุด</h3>
                 </div>
-                
                 <div id="recentTransactionList" class="space-y-2.5">
-                    <!-- Dynamic Transaction Cards -->
+                    <p class="text-center text-slate-500 text-xs py-4">ยังไม่มีรายการบันทึก</p>
                 </div>
             </div>
-
         </section>
 
-        <!-- PAGE 2: SUMMARY & INSIGHTS -->
+        <!-- PAGE 2: SUMMARY -->
         <section id="pageSummary" class="space-y-5 hidden">
-            <!-- Filter Selector -->
-            <div class="glass-card rounded-2xl p-3 flex gap-2 border border-slate-700/40">
-                <select id="summaryMonth" onchange="renderSummary()" class="bg-darkBg text-xs rounded-xl p-2.5 border border-slate-700 text-slate-200 flex-1 focus:outline-none focus:border-neonPurple">
-                    <!-- Month Options -->
-                </select>
-                <select id="summaryYear" onchange="renderSummary()" class="bg-darkBg text-xs rounded-xl p-2.5 border border-slate-700 text-slate-200 w-28 focus:outline-none focus:border-neonPurple">
-                    <!-- Year Options -->
-                </select>
+            <div class="glass-card rounded-2xl p-4 text-center">
+                <h3 class="text-sm font-bold text-slate-300">หน้ารายงานสรุปผล</h3>
             </div>
-
-            <!-- Monthly Total Overview -->
-            <div class="grid grid-cols-2 gap-3">
-                <div class="glass-card p-4 rounded-2xl border-l-4 border-neonGreen">
-                    <p class="text-[11px] text-slate-400">รายรับเดือนนี้</p>
-                    <p id="monthlyIncome" class="text-base font-bold text-neonGreen mt-1 privacy-target">฿0</p>
-                </div>
-                <div class="glass-card p-4 rounded-2xl border-l-4 border-neonPink">
-                    <p class="text-[11px] text-slate-400">รายจ่ายเดือนนี้</p>
-                    <p id="monthlyExpense" class="text-base font-bold text-neonPink mt-1 privacy-target">฿0</p>
-                </div>
-            </div>
-
-            <!-- Calendar View -->
-            <div class="glass-card rounded-3xl p-4 border border-slate-700/40">
-                <h4 class="text-xs font-bold text-slate-300 mb-3 flex items-center justify-between">
-                    <span><i class="fa-regular fa-calendar-days text-neonCyan mr-1"></i> ปฏิทินการใช้เงินรายวัน</span>
-                    <span class="text-[10px] text-slate-500">*แสดงรายจ่ายประจำวัน</span>
-                </h4>
-                <div class="grid grid-cols-7 gap-1 text-center text-[10px] text-slate-400 mb-2 font-bold">
-                    <span>อา</span><span>จ</span><span>อ</span><span>พ</span><span>พฤ</span><span>ศ</span><span>ส</span>
-                </div>
-                <div id="calendarGrid" class="grid grid-cols-7 gap-1 text-center text-xs">
-                    <!-- Dynamic Calendar Cells -->
-                </div>
-            </div>
-
-            <!-- Monthly Category Breakdown Chart -->
-            <div class="glass-card rounded-3xl p-4 border border-slate-700/40 space-y-3">
-                <h4 class="text-xs font-bold text-slate-300"><i class="fa-solid fa-chart-pie text-neonPurple mr-1"></i> สัดส่วนรายจ่ายตามหมวดหมู่ (%)</h4>
-                <div class="relative h-48 flex items-center justify-center">
-                    <canvas id="categoryDoughnutChart"></canvas>
-                </div>
-                <div id="categoryPercentList" class="space-y-2 text-xs pt-2">
-                    <!-- Dynamic Category % Bars -->
-                </div>
-            </div>
-
-            <!-- Insights Toggle Button -->
-            <button onclick="openInsightsModal()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-neonPurple to-neonCyan text-white font-bold text-xs shadow-lg neon-glow-purple flex items-center justify-center gap-2 active:scale-95 transition">
-                <i class="fa-solid fa-chart-line"></i> เข้าสู่โหมด Insights สรุปสถิติรายปี
-            </button>
         </section>
 
-        <!-- PAGE 3: LOANS / DEBTS -->
+        <!-- PAGE 3: LOANS -->
         <section id="pageLoans" class="space-y-4 hidden">
-            <div class="flex justify-between items-center">
-                <h3 class="text-sm font-bold font-mitr text-slate-300"><i class="fa-solid fa-hand-holding-dollar text-neonCyan mr-1"></i> รายการยืม - ให้ยืมเงิน</h3>
-                <button onclick="openAddLoanModal()" class="px-3 py-1.5 rounded-xl bg-neonPurple text-white text-xs font-bold shadow active:scale-95 transition">
-                    + เพิ่มรายการยืม
-                </button>
-            </div>
-
-            <!-- Total Loan Summary Badges -->
-            <div class="grid grid-cols-2 gap-3">
-                <div class="glass-card p-3 rounded-2xl border border-slate-800">
-                    <p class="text-[10px] text-slate-400">เราให้ยืม (ค้างคืน)</p>
-                    <p id="totalLent" class="text-sm font-bold text-neonCyan mt-0.5 privacy-target">฿0</p>
-                </div>
-                <div class="glass-card p-3 rounded-2xl border border-slate-800">
-                    <p class="text-[10px] text-slate-400">เรายืมเขา (ค้างจ่าย)</p>
-                    <p id="totalBorrowed" class="text-sm font-bold text-neonYellow mt-0.5 privacy-target">฿0</p>
-                </div>
-            </div>
-
-            <div id="loanList" class="space-y-2.5">
-                <!-- Dynamic Loan Item Cards -->
+            <div class="glass-card rounded-2xl p-4 text-center">
+                <h3 class="text-sm font-bold text-slate-300">หน้ารายการยืม-คืนเงิน</h3>
             </div>
         </section>
-
     </main>
 
     <!-- Bottom Navigation Bar -->
@@ -322,214 +215,124 @@
 
     <!-- MODAL: ADD TRANSACTION -->
     <div id="addTransactionModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center hidden">
-        <div class="glass-card w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[90vh] overflow-y-auto no-scrollbar border border-slate-700">
-            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-                <h3 class="font-bold text-base font-mitr text-slate-200">บันทึกรายการใหม่</h3>
-                <button onclick="closeModal('addTransactionModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-
-            <!-- Transaction Type Switch -->
-            <div class="grid grid-cols-2 gap-2 p-1 bg-darkBg rounded-2xl border border-slate-800">
-                <button type="button" id="btnTypeExpense" onclick="setTransactionType('expense')" class="py-2 rounded-xl text-xs font-bold transition bg-neonPink text-white">รายจ่าย</button>
-                <button type="button" id="btnTypeIncome" onclick="setTransactionType('income')" class="py-2 rounded-xl text-xs font-bold transition text-slate-400">รายรับ</button>
-            </div>
-
-            <!-- OCR Slip Upload Button -->
-            <div class="p-3 rounded-2xl bg-slate-900/80 border border-dashed border-neonCyan/50 flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <i class="fa-solid fa-file-invoice-dollar text-neonCyan text-xl"></i>
-                    <div>
-                        <p class="text-xs font-bold text-slate-200">สแกนสลิปโอนเงิน (OCR)</p>
-                        <p id="ocrStatusText" class="text-[10px] text-slate-400">ดึงยอดเงินและวันที่อัตโนมัติ</p>
-                    </div>
-                </div>
-                <label class="px-3 py-1.5 rounded-xl bg-neonCyan/20 text-neonCyan border border-neonCyan/40 text-xs font-bold cursor-pointer hover:bg-neonCyan/30 active:scale-95 transition">
-                    เลือกรูป
-                    <input type="file" id="slipInput" accept="image/*" onchange="processSlipOCR(event)" class="hidden">
-                </label>
-            </div>
-
-            <!-- Date Picker -->
-            <div>
-                <label class="text-[11px] text-slate-400 mb-1 block">วันที่บันทึก (เลือกย้อนหลังได้)</label>
-                <input type="date" id="txDate" class="w-full bg-darkBg border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-neonPurple">
-            </div>
-
-            <!-- Amount & Title -->
-            <div class="space-y-3">
-                <div>
-                    <label class="text-[11px] text-slate-400 mb-1 block">จำนวนเงิน (บาท)</label>
-                    <input type="number" step="0.01" id="txAmount" placeholder="0.00" class="w-full bg-darkBg border border-slate-700 rounded-xl p-3 text-lg font-bold text-neonCyan focus:outline-none focus:border-neonCyan">
-                </div>
-                <div>
-                    <label class="text-[11px] text-slate-400 mb-1 block">ชื่อรายการ</label>
-                    <input type="text" id="txTitle" placeholder="เช่น ค่าข้าวผัดกะเพรา" class="w-full bg-darkBg border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-neonPurple">
-                </div>
-            </div>
-
-            <!-- Categories Grid -->
-            <div>
-                <div class="flex justify-between items-center mb-2">
-                    <label class="text-[11px] text-slate-400 block">เลือกหมวดหมู่</label>
-                    <button type="button" onclick="openAddCategoryModal()" class="text-[10px] text-neonCyan hover:underline">+ เพิ่มหมวดหมู่</button>
-                </div>
-                <div id="categoryGrid" class="grid grid-cols-4 gap-2 max-h-36 overflow-y-auto no-scrollbar">
-                    <!-- Dynamic Category Buttons -->
-                </div>
-            </div>
-
-            <button onclick="saveTransaction()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-neonPink to-neonPurple text-white font-bold text-sm shadow-lg neon-glow-pink active:scale-95 transition">
-                บันทึกรายการ
-            </button>
-        </div>
-    </div>
-
-    <!-- MODAL: INSIGHTS ANNUAL -->
-    <div id="insightsModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-lg flex items-center justify-center p-4 hidden">
-        <div class="glass-card w-full max-w-md rounded-3xl p-5 space-y-4 max-h-[90vh] overflow-y-auto no-scrollbar border border-slate-700">
-            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-                <h3 class="font-bold text-base font-mitr text-neonPurple"><i class="fa-solid fa-chart-line mr-1"></i> Insights สถิติประจำปี</h3>
-                <button onclick="closeModal('insightsModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-
-            <!-- Bar Chart -->
-            <div class="space-y-2">
-                <p class="text-xs font-bold text-slate-300">กราฟรายจ่ายรายเดือน (ม.ค. - ธ.ค.)</p>
-                <div class="h-44 bg-darkBg/60 p-2 rounded-2xl border border-slate-800">
-                    <canvas id="yearlyBarChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Statistics Grid Cards -->
-            <div class="grid grid-cols-2 gap-2 text-xs">
-                <div class="p-3 rounded-2xl bg-darkBg border border-slate-800">
-                    <p class="text-[10px] text-slate-400">จำนวนบันทึกทั้งหมด</p>
-                    <p id="statTotalCount" class="font-bold text-slate-200 mt-0.5">0 รายการ</p>
-                </div>
-                <div class="p-3 rounded-2xl bg-darkBg border border-slate-800">
-                    <p class="text-[10px] text-slate-400">เฉลี่ยรายจ่าย/วัน</p>
-                    <p id="statAvgPerDay" class="font-bold text-neonCyan mt-0.5 privacy-target">฿0</p>
-                </div>
-                <div class="p-3 rounded-2xl bg-darkBg border border-slate-800">
-                    <p class="text-[10px] text-slate-400">วันจ่ายหนักสุด</p>
-                    <p id="statMaxDayOfWeek" class="font-bold text-neonYellow mt-0.5">-</p>
-                </div>
-                <div class="p-3 rounded-2xl bg-darkBg border border-slate-800">
-                    <p class="text-[10px] text-slate-400">เดือนที่จ่ายมากสุด</p>
-                    <p id="statMaxMonth" class="font-bold text-neonPink mt-0.5">-</p>
-                </div>
-            </div>
-
-            <!-- Top Expense Category -->
-            <div class="p-3 rounded-2xl bg-neonPink/10 border border-neonPink/30 flex justify-between items-center">
-                <div>
-                    <p class="text-[10px] text-slate-400">หมวดหมู่ใช้เงินสูงสุด</p>
-                    <p id="statTopCatName" class="font-bold text-neonPink text-xs mt-0.5">-</p>
-                </div>
-                <p id="statTopCatAmount" class="font-bold text-slate-200 text-xs privacy-target">฿0</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL: ADD LOAN -->
-    <div id="addLoanModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center hidden">
         <div class="glass-card w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 border border-slate-700">
             <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-                <h3 class="font-bold text-base font-mitr text-slate-200">บันทึกการยืม-ให้ยืมเงิน</h3>
-                <button onclick="closeModal('addLoanModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2 p-1 bg-darkBg rounded-2xl border border-slate-800">
-                <button type="button" id="btnLoanLent" onclick="setLoanType('lent')" class="py-2 rounded-xl text-xs font-bold transition bg-neonCyan text-white">ให้ยืมเงิน</button>
-                <button type="button" id="btnLoanBorrowed" onclick="setLoanType('borrowed')" class="py-2 rounded-xl text-xs font-bold transition text-slate-400">ยืมเงินคนอื่น</button>
-            </div>
-
-            <div class="space-y-3">
-                <div>
-                    <label class="text-[11px] text-slate-400 mb-1 block">ชื่อบุคคล</label>
-                    <input type="text" id="loanPerson" placeholder="เช่น เพื่อน A" class="w-full bg-darkBg border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-neonPurple">
-                </div>
-                <div>
-                    <label class="text-[11px] text-slate-400 mb-1 block">จำนวนเงิน (บาท)</label>
-                    <input type="number" step="0.01" id="loanAmount" placeholder="0.00" class="w-full bg-darkBg border border-slate-700 rounded-xl p-2.5 text-xs font-bold text-neonCyan focus:outline-none focus:border-neonPurple">
-                </div>
-            </div>
-
-            <button onclick="saveLoan()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-neonCyan to-neonPurple text-white font-bold text-xs shadow-lg neon-glow-cyan active:scale-95 transition">
-                บันทึกการยืม
-            </button>
-        </div>
-    </div>
-
-    <!-- MODAL: SETTINGS & BACKUP -->
-    <div id="settingsModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center hidden">
-        <div class="glass-card w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 border border-slate-700 max-h-[85vh] overflow-y-auto no-scrollbar">
-            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-                <h3 class="font-bold text-base font-mitr text-slate-200">ตั้งค่า & สำรองข้อมูล</h3>
-                <button onclick="closeModal('settingsModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-
-            <!-- Change PIN Section -->
-            <div class="p-3 rounded-2xl bg-darkBg border border-slate-800 space-y-2">
-                <p class="text-xs font-bold text-slate-300">ตั้งรหัส PIN ใหม่ (4 หลัก)</p>
-                <div class="flex gap-2">
-                    <input type="password" maxlength="4" id="newPinInput" placeholder="1234" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-slate-200 text-center tracking-widest">
-                    <button onclick="saveNewPin()" class="px-3 py-2 bg-neonPurple text-white text-xs font-bold rounded-xl">เปลี่ยน PIN</button>
-                </div>
-            </div>
-
-            <!-- Set Monthly Budget Section -->
-            <div class="p-3 rounded-2xl bg-darkBg border border-slate-800 space-y-2">
-                <p class="text-xs font-bold text-slate-300">ตั้งงบประมาณรายเดือนรวม</p>
-                <div class="flex gap-2">
-                    <input type="number" id="settingMonthlyBudget" placeholder="เช่น 15000" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-slate-200">
-                    <button onclick="saveBudgetSetting()" class="px-3 py-2 bg-neonGreen text-white text-xs font-bold rounded-xl">บันทึก</button>
-                </div>
-            </div>
-
-            <!-- Backup / Export Section -->
-            <div class="space-y-2 pt-2">
-                <p class="text-xs font-bold text-slate-300">การจัดการข้อมูล</p>
-                <div class="grid grid-cols-2 gap-2">
-                    <button onclick="exportCSV()" class="p-3 rounded-2xl bg-darkBg border border-slate-800 text-xs font-bold text-neonCyan flex flex-col items-center gap-1 active:scale-95 transition">
-                        <i class="fa-solid fa-file-csv text-lg"></i> Export CSV
-                    </button>
-                    <button onclick="exportJSON()" class="p-3 rounded-2xl bg-darkBg border border-slate-800 text-xs font-bold text-neonPurple flex flex-col items-center gap-1 active:scale-95 transition">
-                        <i class="fa-solid fa-file-code text-lg"></i> Backup JSON
-                    </button>
-                </div>
-                <label class="w-full p-3 rounded-2xl bg-darkBg border border-dashed border-slate-700 text-xs font-bold text-slate-300 flex items-center justify-center gap-2 cursor-pointer hover:bg-slate-900 transition">
-                    <i class="fa-solid fa-upload text-neonYellow"></i> Import JSON Data
-                    <input type="file" accept=".json" onchange="importJSON(event)" class="hidden">
-                </label>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL: ADD BILL -->
-    <div id="addBillModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center hidden">
-        <div class="glass-card w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-3 border border-slate-700">
-            <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                <h3 class="font-bold text-base font-mitr text-slate-200">เพิ่มการแจ้งเตือนบิล</h3>
-                <button onclick="closeModal('addBillModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <div>
-                <label class="text-[11px] text-slate-400 mb-1 block">ชื่อบิล (เช่น ค่าน้ำ, ค่าเน็ต)</label>
-                <input type="text" id="billTitle" placeholder="เช่น ค่าบริการรายเดือน" class="w-full bg-darkBg border border-slate-700 rounded-xl p-2 text-xs text-slate-200">
+                <h3 class="font-bold text-base font-mitr text-slate-200">บันทึกรายการ</h3>
+                <button onclick="closeModal('addTransactionModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <div>
                 <label class="text-[11px] text-slate-400 mb-1 block">จำนวนเงิน (บาท)</label>
-                <input type="number" step="0.01" id="billAmount" placeholder="0.00" class="w-full bg-darkBg border border-slate-700 rounded-xl p-2 text-xs font-bold text-neonYellow">
+                <input type="number" id="txAmount" placeholder="0.00" class="w-full bg-darkBg border border-slate-700 rounded-xl p-3 text-lg font-bold text-neonCyan focus:outline-none">
             </div>
             <div>
-                <label class="text-[11px] text-slate-400 mb-1 block">วันครบกำหนดชำระ</label>
-                <input type="date" id="billDueDate" class="w-full bg-darkBg border border-slate-700 rounded-xl p-2 text-xs text-slate-200">
+                <label class="text-[11px] text-slate-400 mb-1 block">รายการ</label>
+                <input type="text" id="txTitle" placeholder="เช่น ค่าอาหาร" class="w-full bg-darkBg border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none">
             </div>
-            <button onclick="saveBill()" class="w-full py-2.5 rounded-xl bg-neonYellow text-slate-950 font-bold text-xs shadow transition active:scale-95">
-                บันทึกบิล
+            <button onclick="saveTransaction()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-neonPink to-neonPurple text-white font-bold text-sm shadow-lg active:scale-95 transition">
+                บันทึก
             </button>
         </div>
     </div>
 
+    <!-- JavaScript Engine -->
+    <script>
+        let currentPin = "";
+        const correctPin = "1234";
+
+        function pressPin(num) {
+            if (currentPin.length < 4) {
+                currentPin += num;
+                updatePinDots();
+                if (currentPin.length === 4) {
+                    setTimeout(checkPin, 150);
+                }
+            }
+        }
+
+        function clearPin() {
+            currentPin = "";
+            updatePinDots();
+        }
+
+        function updatePinDots() {
+            const dots = document.querySelectorAll('.pin-dot');
+            dots.forEach((dot, index) => {
+                if (index < currentPin.length) {
+                    dot.classList.add('bg-neonPink', 'border-neonPink');
+                    dot.classList.remove('border-slate-600');
+                } else {
+                    dot.classList.remove('bg-neonPink', 'border-neonPink');
+                    dot.classList.add('border-slate-600');
+                }
+            });
+        }
+
+        function checkPin() {
+            if (currentPin === correctPin) {
+                document.getElementById('lockScreen').style.display = 'none';
+                currentPin = "";
+                updatePinDots();
+            } else {
+                alert("รหัส PIN ไม่ถูกต้อง (เริ่มต้นคือ 1234)");
+                clearPin();
+            }
+        }
+
+        function triggerFaceID() {
+            alert("สแกนใบหน้าสำเร็จ");
+            document.getElementById('lockScreen').style.display = 'none';
+        }
+
+        function switchPage(page) {
+            document.getElementById('pageHome').classList.add('hidden');
+            document.getElementById('pageSummary').classList.add('hidden');
+            document.getElementById('pageLoans').classList.add('hidden');
+
+            document.getElementById('navHome').className = "flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition";
+            document.getElementById('navSummary').className = "flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition";
+            document.getElementById('navLoans').className = "flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition";
+
+            if (page === 'home') {
+                document.getElementById('pageHome').classList.remove('hidden');
+                document.getElementById('navHome').className = "flex flex-col items-center gap-1 text-neonPink transition";
+            } else if (page === 'summary') {
+                document.getElementById('pageSummary').classList.remove('hidden');
+                document.getElementById('navSummary').className = "flex flex-col items-center gap-1 text-neonPurple transition";
+            } else if (page === 'loans') {
+                document.getElementById('pageLoans').classList.remove('hidden');
+                document.getElementById('navLoans').className = "flex flex-col items-center gap-1 text-neonCyan transition";
+            }
+        }
+
+        function togglePrivacyMode() {
+            const targets = document.querySelectorAll('.privacy-target');
+            const icon = document.getElementById('privacyIcon');
+            targets.forEach(el => el.classList.toggle('blur-amount'));
+            if (icon.classList.contains('fa-eye')) {
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        function openAddTransactionModal() {
+            document.getElementById('addTransactionModal').classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function saveTransaction() {
+            alert("บันทึกรายการเรียบร้อย!");
+            closeModal('addTransactionModal');
+        }
+
+        function openSettingsModal() {
+            alert("เมนูตั้งค่า");
+        }
+    </script>
 </body>
 </html>
