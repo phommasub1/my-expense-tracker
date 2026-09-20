@@ -38,6 +38,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Tesseract OCR for Slip Scanning -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <!-- Google Identity Services SDK (OAuth 2.0) -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <style>
         body {
@@ -49,7 +51,6 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* Glassmorphism Navigation */
         .glass-nav {
             background: rgba(24, 32, 44, 0.85);
             backdrop-filter: blur(16px);
@@ -63,56 +64,30 @@
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        /* Cute Glow Shadows */
         .glow-pink { box-shadow: 0 0 15px rgba(255, 121, 198, 0.25); }
         .glow-purple { box-shadow: 0 0 15px rgba(189, 147, 249, 0.25); }
         .glow-cyan { box-shadow: 0 0 15px rgba(139, 233, 253, 0.25); }
         .glow-green { box-shadow: 0 0 15px rgba(80, 250, 123, 0.25); }
 
-        /* Privacy Blur */
         .blur-balance {
             filter: blur(6px);
             transition: filter 0.3s ease;
         }
 
-        /* Custom Scrollbars */
-        ::-webkit-scrollbar {
-            width: 4px;
-            height: 4px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #0f141c;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #232d3f;
-            border-radius: 4px;
-        }
-        
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #0f141c; }
+        ::-webkit-scrollbar-thumb { background: #232d3f; border-radius: 4px; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* Active Navigation Tab Glow */
-        .nav-active {
-            color: #ff79c6 !important;
-            transform: translateY(-2px);
-        }
-        .nav-active i {
-            filter: drop-shadow(0 0 6px rgba(255, 121, 198, 0.6));
-        }
+        .nav-active { color: #ff79c6 !important; transform: translateY(-2px); }
+        .nav-active i { filter: drop-shadow(0 0 6px rgba(255, 121, 198, 0.6)); }
 
-        /* Pulse Animation for Floating Add Button */
         @keyframes subtlePulse {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.05); }
         }
-        .animate-pulse-subtle {
-            animation: subtlePulse 3s infinite ease-in-out;
-        }
+        .animate-pulse-subtle { animation: subtlePulse 3s infinite ease-in-out; }
     </style>
 </head>
 <body class="bg-darkBg text-slate-100 min-h-screen flex flex-col justify-between antialiased selection:bg-pastelPink selection:text-darkBg pb-24">
@@ -128,7 +103,6 @@
             <p class="text-[11px] text-pastelCyan font-mono">Client ID: <span id="overlayClientId">CLIENT_001</span></p>
         </div>
 
-        <!-- PIN Dots Display -->
         <div class="flex space-x-4 my-4">
             <div class="pin-dot w-4 h-4 rounded-full border-2 border-pastelPink/50"></div>
             <div class="pin-dot w-4 h-4 rounded-full border-2 border-pastelPink/50"></div>
@@ -136,7 +110,6 @@
             <div class="pin-dot w-4 h-4 rounded-full border-2 border-pastelPink/50"></div>
         </div>
 
-        <!-- Keypad -->
         <div class="grid grid-cols-3 gap-4 w-full max-w-xs text-center">
             <button onclick="pressPin('1')" class="p-4 rounded-2xl bg-darkCard text-lg font-semibold border border-white/5 active:scale-95 transition">1</button>
             <button onclick="pressPin('2')" class="p-4 rounded-2xl bg-darkCard text-lg font-semibold border border-white/5 active:scale-95 transition">2</button>
@@ -167,7 +140,6 @@
             </div>
             <div>
                 <h1 class="text-base font-bold bg-gradient-to-r from-pastelPink via-pastelPurple to-pastelCyan bg-clip-text text-transparent">MoneyPod Cute</h1>
-                <!-- Client ID Display Badge -->
                 <p class="text-[10px] text-slate-400 flex items-center gap-1">
                     ID: <span id="currentClientIdHeader" class="text-pastelCyan font-mono font-semibold">CLIENT_001</span>
                     <button onclick="switchTab('settings')" class="text-slate-500 hover:text-pastelPink"><i class="fa-solid fa-arrows-rotate text-[9px]"></i></button>
@@ -176,6 +148,14 @@
         </div>
 
         <div class="flex items-center space-x-2">
+            <!-- Google Sign-In Button -->
+            <div id="g_id_onload"
+                 data-client_id="193914963755-bve94pbiuo0n7jr42n5s431j7vcu1bbf.apps.googleusercontent.com"
+                 data-callback="handleGoogleLogin"
+                 data-auto_prompt="false">
+            </div>
+            <div class="g_id_signin" data-type="icon" data-shape="circle" data-theme="dark"></div>
+
             <!-- Privacy Toggle -->
             <button onclick="togglePrivacy()" id="privacyBtn" class="p-2.5 rounded-xl bg-darkCard border border-white/5 text-slate-300 hover:text-pastelCyan transition">
                 <i class="fa-solid fa-eye"></i>
@@ -193,7 +173,6 @@
 
         <!-- TAB 1: HOME DASHBOARD -->
         <section id="tab-home" class="tab-content space-y-5">
-            <!-- Net Worth Card -->
             <div class="glass-card rounded-3xl p-5 relative overflow-hidden border border-pastelPink/20 glow-pink">
                 <div class="absolute -right-6 -bottom-6 w-28 h-28 bg-pastelPink/10 rounded-full blur-xl pointer-events-none"></div>
                 <div class="flex justify-between items-start mb-2">
@@ -208,7 +187,6 @@
                     <span class="balance-text text-pastelPink" id="totalNetWorth">฿0.00</span>
                 </div>
 
-                <!-- Monthly Income/Expense Pill Bar -->
                 <div class="grid grid-cols-2 gap-3 pt-3 border-t border-white/5">
                     <div class="flex items-center space-x-3 bg-darkSub/50 p-2.5 rounded-2xl">
                         <div class="w-8 h-8 rounded-xl bg-pastelGreen/20 flex items-center justify-center text-pastelGreen text-xs">
@@ -231,7 +209,6 @@
                 </div>
             </div>
 
-            <!-- Overall Budget Power Bar -->
             <div class="glass-card rounded-2xl p-4 space-y-2 border border-white/5">
                 <div class="flex justify-between items-center text-xs">
                     <span class="text-slate-300 font-medium flex items-center gap-1.5">
@@ -248,7 +225,6 @@
                 </div>
             </div>
 
-            <!-- Quick Wallet Scroll Carousel -->
             <div class="space-y-2">
                 <div class="flex justify-between items-center">
                     <h3 class="text-xs font-bold text-slate-300 tracking-wide uppercase flex items-center gap-1.5">
@@ -257,11 +233,9 @@
                     <button onclick="switchTab('wallets')" class="text-[11px] text-pastelCyan hover:underline">จัดการกระเป๋า <i class="fa-solid fa-chevron-right text-[9px]"></i></button>
                 </div>
                 <div id="walletCarousel" class="flex space-x-3 overflow-x-auto no-scrollbar pb-1 pt-1">
-                    <!-- Dynamic Wallet Badges -->
                 </div>
             </div>
 
-            <!-- Recent Transactions List -->
             <div class="space-y-3">
                 <div class="flex justify-between items-center">
                     <h3 class="text-xs font-bold text-slate-300 tracking-wide uppercase flex items-center gap-1.5">
@@ -270,12 +244,11 @@
                     <span class="text-[11px] text-slate-500" id="txCountText">0 รายการ</span>
                 </div>
                 <div id="recentTxList" class="space-y-2.5">
-                    <!-- Dynamic Transactions Render Here -->
                 </div>
             </div>
         </section>
 
-        <!-- TAB 2: WALLETS & TRANSFERS -->
+        <!-- TAB 2: WALLETS -->
         <section id="tab-wallets" class="tab-content space-y-5 hidden">
             <div class="flex justify-between items-center">
                 <div>
@@ -287,7 +260,6 @@
                 </button>
             </div>
 
-            <!-- Transfer Money Action Button -->
             <div class="glass-card rounded-2xl p-4 border border-pastelCyan/20 flex items-center justify-between glow-cyan">
                 <div class="flex items-center space-x-3">
                     <div class="w-10 h-10 rounded-xl bg-pastelCyan/20 flex items-center justify-center text-pastelCyan">
@@ -303,24 +275,20 @@
                 </button>
             </div>
 
-            <!-- Wallets Grid -->
             <div id="fullWalletGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <!-- Dynamic Render -->
             </div>
         </section>
 
-        <!-- TAB 3: CALENDAR & ANALYTICS -->
+        <!-- TAB 3: CALENDAR -->
         <section id="tab-calendar" class="tab-content space-y-5 hidden">
             <div class="flex justify-between items-center">
                 <div>
                     <h2 class="text-lg font-bold text-white">ปฏิทิน & สรุปผล</h2>
                     <p class="text-xs text-slate-400">ดูแนวโน้มการใช้จ่ายในแต่ละวัน</p>
                 </div>
-                <!-- Month Selection Input -->
                 <input type="month" id="calendarMonthPicker" onchange="renderCalendar()" class="bg-darkCard text-xs border border-white/10 rounded-xl px-3 py-1.5 text-pastelPink focus:outline-none focus:border-pastelPink">
             </div>
 
-            <!-- Calendar Grid Card -->
             <div class="glass-card rounded-3xl p-4 border border-white/5 space-y-3">
                 <div class="grid grid-cols-7 text-center text-[11px] font-semibold text-slate-400 pb-2 border-b border-white/5">
                     <span class="text-pastelRed">อา</span>
@@ -332,11 +300,9 @@
                     <span class="text-pastelCyan">ส</span>
                 </div>
                 <div id="calendarGrid" class="grid grid-cols-7 gap-1 text-center">
-                    <!-- Dynamic Date Blocks -->
                 </div>
             </div>
 
-            <!-- Category Expense Chart (Chart.js) -->
             <div class="glass-card rounded-3xl p-4 border border-white/5 space-y-3">
                 <h3 class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                     <i class="fa-solid fa-chart-pie text-pastelPurple"></i> สัดส่วนรายจ่ายแยกตามหมวดหมู่
@@ -347,7 +313,7 @@
             </div>
         </section>
 
-        <!-- TAB 4: DEBTS & INSTALLMENTS -->
+        <!-- TAB 4: DEBTS -->
         <section id="tab-debts" class="tab-content space-y-5 hidden">
             <div class="flex justify-between items-center">
                 <div>
@@ -364,54 +330,55 @@
                 </div>
             </div>
 
-            <!-- Debt / Loans Section -->
             <div class="space-y-3">
                 <h3 class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                     <i class="fa-solid fa-hand-holding-dollar text-pastelPink"></i> รายการยืม-คืนเงิน
                 </h3>
                 <div id="debtList" class="space-y-2.5">
-                    <!-- Dynamic Debts -->
                 </div>
             </div>
 
-            <!-- Installment Purchases Section -->
             <div class="space-y-3 pt-2">
                 <h3 class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                     <i class="fa-solid fa-credit-card text-pastelYellow"></i> รายการผ่อนชำระสินค้า
                 </h3>
                 <div id="installmentList" class="space-y-2.5">
-                    <!-- Dynamic Installments -->
                 </div>
             </div>
         </section>
 
-        <!-- TAB 5: SETTINGS & BACKUP -->
+        <!-- TAB 5: SETTINGS -->
         <section id="tab-settings" class="tab-content space-y-5 hidden">
             <div>
                 <h2 class="text-lg font-bold text-white">ตั้งค่า & สำรองข้อมูล</h2>
-                <p class="text-xs text-slate-400">การความปลอดภัย การส่งออกข้อมูล และงบประมาณ</p>
+                <p class="text-xs text-slate-400">ความปลอดภัย การส่งออกข้อมูล และงบประมาณ</p>
             </div>
 
-            <!-- CLIENT ID MANAGEMENT SECTION -->
+            <!-- GOOGLE OAUTH CLIENT ID CONFIG -->
+            <div class="glass-card rounded-2xl p-4 border border-pastelPurple/30 space-y-3 glow-purple">
+                <h3 class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                    <i class="fa-brands fa-google text-pastelPurple"></i> Google Cloud Client ID (OAuth 2.0)
+                </h3>
+                <p class="text-[11px] text-slate-400">วาง Google OAuth Client ID สำหรับเชื่อมต่อระบบเข้าสู่ระบบด้วย Gmail</p>
+                <div class="space-y-2">
+                    <input type="text" id="googleClientIdSetting" placeholder="193914963755-...apps.googleusercontent.com" class="w-full bg-darkBg border border-white/10 rounded-xl px-3 py-2 text-xs text-pastelPurple font-mono focus:outline-none focus:border-pastelPurple">
+                    <button onclick="saveGoogleClientId()" class="w-full py-2 rounded-xl bg-pastelPurple text-darkBg text-xs font-bold hover:opacity-90 transition">
+                        บันทึก Google Client ID
+                    </button>
+                </div>
+            </div>
+
+            <!-- APP PROFILE CLIENT ID MANAGEMENT -->
             <div class="glass-card rounded-2xl p-4 border border-pastelCyan/30 space-y-3 glow-cyan">
                 <h3 class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                    <i class="fa-solid fa-id-card text-pastelCyan"></i> จัดการ Client ID / โปรไฟล์
+                    <i class="fa-solid fa-id-card text-pastelCyan"></i> จัดการ Profile Client ID (ภายในแอป)
                 </h3>
-                <p class="text-[11px] text-slate-400">ใช้ Client ID เพื่อแยกฐานข้อมูลบัญชีระหว่างอุปกรณ์หรือระหว่างผู้ใช้</p>
+                <p class="text-[11px] text-slate-400">สลับโปรไฟล์เพื่อแยกฐานข้อมูลบัญชีอิสระ</p>
                 <div class="space-y-2">
-                    <label class="text-[11px] text-slate-300 block">Client ID ปัจจุบัน:</label>
                     <div class="flex gap-2">
-                        <input type="text" id="clientIdInput" placeholder="กรอก Client ID เช่น USER_123" class="flex-1 bg-darkBg border border-white/10 rounded-xl px-3 py-2 text-xs text-pastelCyan font-mono focus:outline-none focus:border-pastelCyan">
+                        <input type="text" id="clientIdInput" placeholder="กรอก Profile ID เช่น USER_123" class="flex-1 bg-darkBg border border-white/10 rounded-xl px-3 py-2 text-xs text-pastelCyan font-mono focus:outline-none focus:border-pastelCyan">
                         <button onclick="setClientId()" class="px-3 py-2 rounded-xl bg-pastelCyan text-darkBg text-xs font-bold hover:opacity-90 transition">
                             สลับ ID
-                        </button>
-                    </div>
-                    <div class="flex justify-between items-center pt-1">
-                        <button onclick="generateRandomClientId()" class="text-[11px] text-pastelPurple hover:underline flex items-center gap-1">
-                            <i class="fa-solid fa-dice"></i> สุ่ม Client ID ใหม่
-                        </button>
-                        <button onclick="copyClientId()" class="text-[11px] text-slate-400 hover:text-white flex items-center gap-1">
-                            <i class="fa-solid fa-copy"></i> คัดลอก ID
                         </button>
                     </div>
                 </div>
@@ -469,10 +436,9 @@
                 </div>
             </div>
 
-            <!-- Reset Data Action -->
             <div class="pt-4 text-center">
                 <button onclick="resetAllData()" class="text-xs text-pastelRed hover:underline flex items-center justify-center gap-1 mx-auto">
-                    <i class="fa-solid fa-trash-can"></i> ล้างข้อมูลเฉพาะ Client ID นี้
+                    <i class="fa-solid fa-trash-can"></i> ล้างข้อมูลทั้งหมดในเครื่อง
                 </button>
             </div>
         </section>
@@ -522,7 +488,6 @@
                 <button onclick="closeModal('addTxModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
 
-            <!-- Transaction Type Selector Pill -->
             <div class="grid grid-cols-3 gap-2 bg-darkBg p-1 rounded-2xl">
                 <button onclick="setTxType('expense')" id="btnTypeExpense" class="py-2 rounded-xl text-xs font-semibold bg-pastelRed text-darkBg transition">รายจ่าย</button>
                 <button onclick="setTxType('income')" id="btnTypeIncome" class="py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition">รายรับ</button>
@@ -531,7 +496,6 @@
                 </button>
             </div>
 
-            <!-- Form Inputs -->
             <div class="space-y-3">
                 <div>
                     <label class="text-[11px] text-slate-400 block mb-1">จำนวนเงิน (บาท)</label>
@@ -651,7 +615,31 @@
 
     <!-- JAVASCRIPT APP LOGIC -->
     <script>
-        // CLIENT ID MANAGEMENT & MULTI-USER STORAGE
+        // GOOGLE OAUTH HANDLING
+        function handleGoogleLogin(response) {
+            const payload = parseJwt(response.credential);
+            alert(`เข้าสู่ระบบด้วย Google สำเร็จ!\nยินดีต้อนรับ: ${payload.name} (${payload.email})`);
+            console.log("User Google Profile:", payload);
+        }
+
+        function parseJwt(token) {
+            let base64Url = token.split('.')[1];
+            let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            let jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            return JSON.parse(jsonPayload);
+        }
+
+        function saveGoogleClientId() {
+            const gId = document.getElementById('googleClientIdSetting').value.trim();
+            if(gId) {
+                localStorage.setItem('MP_GOOGLE_CLIENT_ID', gId);
+                alert('บันทึก Google Client ID เรียบร้อยแล้ว! กรุณารีเฟรชหน้าเว็บเพื่อเริ่มใช้งานปุ่มล็อกอิน');
+            }
+        }
+
+        // APP PROFILE CLIENT ID MANAGEMENT & MULTI-USER STORAGE
         let currentClientId = localStorage.getItem('MP_CURRENT_CLIENT_ID') || 'CLIENT_001';
 
         function getStorageKey(key) {
@@ -662,6 +650,13 @@
             document.getElementById('currentClientIdHeader').innerText = currentClientId;
             document.getElementById('overlayClientId').innerText = currentClientId;
             document.getElementById('clientIdInput').value = currentClientId;
+            
+            const savedGId = localStorage.getItem('MP_GOOGLE_CLIENT_ID');
+            if(savedGId) {
+                document.getElementById('googleClientIdSetting').value = savedGId;
+                const gElement = document.getElementById('g_id_onload');
+                if(gElement) gElement.setAttribute('data-client_id', savedGId);
+            }
         }
 
         function setClientId() {
@@ -672,16 +667,6 @@
             initClientId();
             loadAllData();
             alert(`สลับไปใช้งาน Client ID: ${currentClientId} เรียบร้อยแล้ว`);
-        }
-
-        function generateRandomClientId() {
-            const randomId = 'CLIENT_' + Math.random().toString(36).substring(2, 8).toUpperCase();
-            document.getElementById('clientIdInput').value = randomId;
-        }
-
-        function copyClientId() {
-            navigator.clipboard.writeText(currentClientId);
-            alert('คัดลอก Client ID แล้ว: ' + currentClientId);
         }
 
         // STATE MANAGEMENT
@@ -706,7 +691,6 @@
             document.getElementById('monthlyBudgetInput').value = monthlyBudget;
             document.getElementById('txDate').valueAsDate = new Date();
             
-            // Set calendar month picker to current YYYY-MM
             const now = new Date();
             const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
             document.getElementById('calendarMonthPicker').value = monthStr;
@@ -715,7 +699,6 @@
         });
 
         function loadAllData() {
-            // Reload data specific to current Client ID
             pin = localStorage.getItem(getStorageKey('pin')) || '1234';
             wallets = JSON.parse(localStorage.getItem(getStorageKey('wallets'))) || [
                 { id: 'w1', name: 'เงินสด', balance: 2500, icon: 'fa-money-bill-wave', color: 'pastelGreen' },
@@ -820,7 +803,6 @@
         function renderDashboard() {
             let totalNetWorth = wallets.reduce((acc, w) => acc + w.balance, 0);
             
-            // Calculate Monthly Income/Expense
             const now = new Date();
             const currentMonth = now.getMonth();
             const currentYear = now.getFullYear();
@@ -838,7 +820,6 @@
             document.getElementById('monthlyIncome').innerText = `฿${inc.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
             document.getElementById('monthlyExpense').innerText = `฿${exp.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
 
-            // Budget Progress
             document.getElementById('budgetUsedText').innerText = `฿${exp.toLocaleString()}`;
             document.getElementById('budgetLimitText').innerText = `฿${monthlyBudget.toLocaleString()}`;
             let pct = monthlyBudget > 0 ? Math.min(100, Math.round((exp / monthlyBudget) * 100)) : 0;
@@ -1022,7 +1003,6 @@
             closeModal('addTxModal');
             loadAllData();
             
-            // Clear inputs
             document.getElementById('txAmount').value = '';
             document.getElementById('txNote').value = '';
             document.getElementById('txTag').value = '';
@@ -1039,7 +1019,6 @@
             const firstDay = new Date(year, month - 1, 1).getDay();
             const daysInMonth = new Date(year, month, 0).getDate();
 
-            // Empty Slots
             for (let i = 0; i < firstDay; i++) {
                 grid.innerHTML += `<div class="h-9"></div>`;
             }
@@ -1064,7 +1043,6 @@
         function initChart() {
             const ctx = document.getElementById('categoryChart').getContext('2d');
             
-            // Group expenses by category
             let catMap = {};
             categories.forEach(c => catMap[c] = 0);
             transactions.forEach(t => {
@@ -1111,7 +1089,6 @@
             Tesseract.recognize(file, 'tha+eng')
                 .then(({ data: { text } }) => {
                     status.classList.add('hidden');
-                    // Simple pattern match for amounts (e.g. 100.00 หรือ 1,000.00)
                     const amounts = text.match(/([0-9]{1,3}(,[0-9]{3})*(\.[0-9]{2}))/g);
                     if (amounts && amounts.length > 0) {
                         const parsedAmt = parseFloat(amounts[0].replace(/,/g, ''));
