@@ -2,1272 +2,264 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Cute Dark Expense Tracker</title>
-    
-    <!-- iOS PWA Meta Tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="ExpenseApp">
-    
-    <!-- Tailwind CSS & FontAwesome -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cute Dark MoneyPod Expense Tracker</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Tesseract OCR -->
+    <!-- Tesseract.js (OCR สำหรับแสกนสลิป) -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
-    <!-- Google Fonts (Kanit & Mitr) -->
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&family=Mitr:wght@300;400;500&display=swap" rel="stylesheet">
-
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        darkBg: '#0B0F19',
-                        darkCard: '#151C2C',
-                        darkAccent: '#1E293B',
-                        neonPink: '#FF2E93',
-                        neonPurple: '#A855F7',
-                        neonCyan: '#00F0FF',
-                        neonGreen: '#10B981',
-                        neonYellow: '#F59E0B',
-                        neonRed: '#EF4444'
-                    },
-                    fontFamily: {
-                        kanit: ['Kanit', 'sans-serif'],
-                        mitr: ['Mitr', 'sans-serif']
-                    }
-                }
-            }
-        }
-    </script>
-
+    <!-- Google Identity Services API (OAuth 2.0) -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap');
         body {
             font-family: 'Kanit', sans-serif;
-            background-color: #0B0F19;
-            color: #F8FAFC;
-            -webkit-tap-highlight-color: transparent;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        .privacy-masked {
+            filter: blur(5px);
             user-select: none;
         }
-        .glass-card {
-            background: rgba(21, 28, 44, 0.75);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-        }
-        .neon-glow-pink { box-shadow: 0 0 15px rgba(255, 46, 147, 0.35); }
-        .neon-glow-cyan { box-shadow: 0 0 15px rgba(0, 240, 255, 0.35); }
-        .neon-glow-purple { box-shadow: 0 0 15px rgba(168, 85, 247, 0.35); }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .blur-amount { filter: blur(8px); transition: filter 0.2s ease; }
-        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
-        .pt-safe { padding-top: env(safe-area-inset-top, 20px); }
     </style>
 </head>
-<body class="dark bg-darkBg min-h-screen text-slate-100 flex flex-col justify-between overflow-x-hidden antialiased">
+<body class="min-h-screen pb-20">
 
-    <!-- App Lock Overlay -->
-    <div id="lockScreen" class="fixed inset-0 z-50 bg-darkBg/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 transition-all duration-300">
-        <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-neonPink to-neonPurple flex items-center justify-center text-3xl text-white mb-6 neon-glow-pink animate-bounce">
-            <i class="fa-solid fa-lock"></i>
-        </div>
-        <h2 class="text-2xl font-bold font-mitr mb-2 bg-clip-text text-transparent bg-gradient-to-r from-neonCyan to-neonPurple">ยินดีต้อนรับกลับมา</h2>
-        <p class="text-slate-400 text-sm mb-6">กรุณาใส่รหัส PIN เพื่อเข้าใช้งาน</p>
-        
-        <div class="flex gap-4 mb-8">
-            <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-600"></div>
-            <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-600"></div>
-            <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-600"></div>
-            <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-600"></div>
-        </div>
-
-        <div class="grid grid-cols-3 gap-6 w-64 text-center">
-            <button onclick="pressPin('1')" class="w-16 h-16 rounded-full glass-card text-xl font-bold active:scale-95 transition">1</button>
-            <button onclick="pressPin('2')" class="w-16 h-16 rounded-full glass-card text-xl font-bold active:scale-95 transition">2</button>
-            <button onclick="pressPin('3')" class="w-16 h-16 rounded-full glass-card text-xl font-bold active:scale-95 transition">3</button>
-            <button onclick="pressPin('4')" class="w-16 h-16 rounded-full glass-card text-xl font-bold active:scale-95 transition">4</button>
-            <button onclick="pressPin('5')" class="w-16 h-16 rounded-full glass-card text-xl font-bold active:scale-95 transition">5</button>
-            <button onclick="pressPin('6')" class="w-16 h-16 rounded-full glass-card text-xl font-bold active:scale-95 transition">6</button>
-            <button onclick="pressPin('7')" class="w-16 h-16 rounded-full glass-card text-xl font-bold active:scale-95 transition">7</button>
-            <button onclick="pressPin('8')" class="w-16 h-16 rounded-full glass-card text-xl font-bold active:scale-95 transition">8</button>
-            <button onclick="pressPin('9')" class="w-16 h-16 rounded-full glass-card text-xl font-bold active:scale-95 transition">9</button>
-            <button onclick="triggerFaceID()" class="w-16 h-16 rounded-full glass-card text-neonCyan text-xl flex items-center justify-center active:scale-95 transition">
-                <i class="fa-solid fa-face-smile"></i>
-            </button>
-            <button onclick="pressPin('0')" class="w-16 h-16 rounded-full glass-card text-xl font-bold active:scale-95 transition">0</button>
-            <button onclick="clearPin()" class="w-16 h-16 rounded-full glass-card text-neonPink text-xl flex items-center justify-center active:scale-95 transition">
-                <i class="fa-solid fa-delete-left"></i>
-            </button>
-        </div>
-    </div>
-
-    <!-- Header Navigation Bar -->
-    <header class="pt-safe px-5 py-4 flex items-center justify-between sticky top-0 z-30 glass-card rounded-b-2xl border-b border-slate-800/50">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-neonPink via-neonPurple to-neonCyan flex items-center justify-center text-white text-lg font-bold neon-glow-pink">
-                <i class="fa-solid fa-wallet"></i>
+    <!-- Header Navigation -->
+    <header class="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-wallet text-pink-500 text-2xl"></i>
+                <h1 class="text-xl font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
+                    MoneyPod Tracker
+                </h1>
             </div>
-            <div>
-                <h1 class="text-base font-bold font-mitr leading-none bg-clip-text text-transparent bg-gradient-to-r from-pink-400 to-purple-400">Expense Cutie</h1>
-                <p class="text-[10px] text-slate-400 mt-0.5">บันทึกรายรับ-รายจ่าย</p>
+            
+            <div class="flex items-center gap-3">
+                <!-- Privacy Mode Toggle -->
+                <button id="togglePrivacyBtn" onclick="togglePrivacy()" class="p-2 bg-slate-800 rounded-full hover:bg-slate-700 text-slate-300">
+                    <i id="privacyIcon" class="fa-solid fa-eye"></i>
+                </button>
+                <!-- Lock PIN Button -->
+                <button onclick="lockApp()" class="p-2 bg-slate-800 rounded-full hover:bg-slate-700 text-slate-300">
+                    <i class="fa-solid fa-lock"></i>
+                </button>
+                <!-- Google Sign-In Container -->
+                <div id="g_id_onload"
+                     data-client_id="193914963755-bve94pbiuo0n7jr42n5s431j7vcu1bbf.apps.googleusercontent.com"
+                     data-callback="handleCredentialResponse"
+                     data-auto_prompt="false">
+                </div>
+                <div class="g_id_signin" data-type="icon" data-shape="circle" data-theme="dark"></div>
             </div>
-        </div>
-        <div class="flex items-center gap-2">
-            <button onclick="togglePrivacyMode()" class="w-9 h-9 rounded-full glass-card flex items-center justify-center text-slate-300 hover:text-white active:scale-90 transition">
-                <i id="privacyIcon" class="fa-solid fa-eye"></i>
-            </button>
-            <button onclick="openSettingsModal()" class="w-9 h-9 rounded-full glass-card flex items-center justify-center text-slate-300 hover:text-white active:scale-90 transition">
-                <i class="fa-solid fa-gear"></i>
-            </button>
         </div>
     </header>
 
-    <!-- Main Container -->
-    <main class="flex-1 px-4 py-4 mb-24 max-w-md mx-auto w-full space-y-5">
-        
-        <!-- PAGE 1: HOME PAGE -->
-        <section id="pageHome" class="space-y-5">
-            
-            <!-- Summary Card -->
-            <div class="glass-card rounded-3xl p-5 relative overflow-hidden border border-slate-700/50">
-                <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-neonPurple/20 rounded-full blur-3xl pointer-events-none"></div>
-                <div class="flex justify-between items-center mb-2">
-                    <span class="text-xs font-mitr text-slate-400 flex items-center gap-1.5">
-                        <i class="fa-regular fa-calendar-check text-neonCyan"></i> ยอดสรุปประจำปี <span id="currentYearDisplay">2026</span>
-                    </span>
-                    <span id="savingsRateBadge" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-neonGreen/20 text-neonGreen border border-neonGreen/30">
-                        ออมได้ 0%
-                    </span>
-                </div>
+    <!-- Main Content Area -->
+    <main class="max-w-4xl mx-auto p-4 space-y-6">
 
-                <div class="grid grid-cols-3 gap-2 text-center mt-3">
-                    <div class="p-2.5 rounded-2xl bg-darkBg/60 border border-slate-800">
-                        <p class="text-[10px] text-slate-400 mb-0.5">รายรับรวม</p>
-                        <p id="totalYearIncome" class="text-xs font-bold text-neonGreen privacy-target">฿0</p>
-                    </div>
-                    <div class="p-2.5 rounded-2xl bg-darkBg/60 border border-slate-800">
-                        <p class="text-[10px] text-slate-400 mb-0.5">รายจ่ายรวม</p>
-                        <p id="totalYearExpense" class="text-xs font-bold text-neonPink privacy-target">฿0</p>
-                    </div>
-                    <div class="p-2.5 rounded-2xl bg-darkBg/60 border border-slate-800">
-                        <p class="text-[10px] text-slate-400 mb-0.5">เงินออมรวม</p>
-                        <p id="totalYearSavings" class="text-xs font-bold text-neonCyan privacy-target">฿0</p>
-                    </div>
-                </div>
-
-                <!-- Add Button -->
-                <button onclick="openAddTransactionModal('today')" class="w-full mt-4 py-3 rounded-2xl bg-gradient-to-r from-neonPink via-neonPurple to-neonCyan text-white font-bold text-sm shadow-lg neon-glow-pink active:scale-[0.98] transition flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-circle-plus text-lg"></i> บันทึกรายการวันนี้
-                </button>
+        <!-- Dashboard / Balance Overview -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-slate-800/80 border border-slate-700 p-5 rounded-2xl shadow-lg">
+                <p class="text-sm text-slate-400">ยอดยกมาทั้งหมด (Total Balance)</p>
+                <p id="totalBalance" class="text-3xl font-bold text-emerald-400 mt-2 privacy-target">฿0.00</p>
             </div>
-
-            <!-- Budget Progress Widget -->
-            <div class="glass-card rounded-2xl p-4 space-y-2 border border-slate-700/40">
-                <div class="flex justify-between items-center text-xs">
-                    <span class="font-bold flex items-center gap-1.5"><i class="fa-solid fa-bullseye text-neonYellow"></i> งบประมาณเดือนนี้</span>
-                    <span id="budgetText" class="text-slate-400 text-[11px]">฿0 / ฿0</span>
-                </div>
-                <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
-                    <div id="budgetProgressBar" class="bg-neonGreen h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
-                </div>
+            <div class="bg-slate-800/80 border border-slate-700 p-5 rounded-2xl shadow-lg">
+                <p class="text-sm text-slate-400">รายรับเดือนนี้ (Income)</p>
+                <p id="totalIncome" class="text-2xl font-semibold text-blue-400 mt-2 privacy-target">฿0.00</p>
             </div>
-
-            <!-- Bill Reminders Banner -->
-            <div class="glass-card rounded-2xl p-4 border border-slate-700/40 space-y-3">
-                <div class="flex justify-between items-center text-xs">
-                    <span class="font-bold flex items-center gap-1.5 text-neonYellow"><i class="fa-solid fa-bell"></i> รายการบิลใกล้ครบกำหนด</span>
-                    <button onclick="openAddBillModal()" class="text-[11px] text-neonCyan hover:underline">+ เพิ่มบิล</button>
-                </div>
-                <div id="billReminderList" class="space-y-2 text-xs">
-                    <!-- Dynamic Bill Items -->
-                </div>
+            <div class="bg-slate-800/80 border border-slate-700 p-5 rounded-2xl shadow-lg">
+                <p class="text-sm text-slate-400">รายจ่ายเดือนนี้ (Expense)</p>
+                <p id="totalExpense" class="text-2xl font-semibold text-rose-400 mt-2 privacy-target">฿0.00</p>
             </div>
-
-            <!-- Recent Transactions / Backdate Section -->
-            <div class="space-y-3">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-sm font-bold font-mitr text-slate-300 flex items-center gap-1.5">
-                        <i class="fa-solid fa-clock-rotate-left text-neonPurple"></i> ประวัติรายการย้อนหลัง
-                    </h3>
-                    <button onclick="openAddTransactionModal('backdate')" class="text-xs text-neonCyan hover:underline flex items-center gap-1">
-                        <i class="fa-regular fa-calendar-plus"></i> บันทึกย้อนหลัง
-                    </button>
-                </div>
-                
-                <div id="recentTransactionList" class="space-y-2.5">
-                    <!-- Dynamic Transaction Cards -->
-                </div>
-            </div>
-
         </section>
 
-        <!-- PAGE 2: SUMMARY & INSIGHTS -->
-        <section id="pageSummary" class="space-y-5 hidden">
-            <!-- Filter Selector -->
-            <div class="glass-card rounded-2xl p-3 flex gap-2 border border-slate-700/40">
-                <select id="summaryMonth" onchange="renderSummary()" class="bg-darkBg text-xs rounded-xl p-2.5 border border-slate-700 text-slate-200 flex-1 focus:outline-none focus:border-neonPurple">
-                    <!-- Month Options -->
-                </select>
-                <select id="summaryYear" onchange="renderSummary()" class="bg-darkBg text-xs rounded-xl p-2.5 border border-slate-700 text-slate-200 w-28 focus:outline-none focus:border-neonPurple">
-                    <!-- Year Options -->
-                </select>
-            </div>
-
-            <!-- Monthly Total Overview -->
-            <div class="grid grid-cols-2 gap-3">
-                <div class="glass-card p-4 rounded-2xl border-l-4 border-neonGreen">
-                    <p class="text-[11px] text-slate-400">รายรับเดือนนี้</p>
-                    <p id="monthlyIncome" class="text-base font-bold text-neonGreen mt-1 privacy-target">฿0</p>
-                </div>
-                <div class="glass-card p-4 rounded-2xl border-l-4 border-neonPink">
-                    <p class="text-[11px] text-slate-400">รายจ่ายเดือนนี้</p>
-                    <p id="monthlyExpense" class="text-base font-bold text-neonPink mt-1 privacy-target">฿0</p>
-                </div>
-            </div>
-
-            <!-- Calendar View -->
-            <div class="glass-card rounded-3xl p-4 border border-slate-700/40">
-                <h4 class="text-xs font-bold text-slate-300 mb-3 flex items-center justify-between">
-                    <span><i class="fa-regular fa-calendar-days text-neonCyan mr-1"></i> ปฏิทินการใช้เงินรายวัน</span>
-                    <span class="text-[10px] text-slate-500">*แสดงรายจ่ายประจำวัน</span>
-                </h4>
-                <div class="grid grid-cols-7 gap-1 text-center text-[10px] text-slate-400 mb-2 font-bold">
-                    <span>อา</span><span>จ</span><span>อ</span><span>พ</span><span>พฤ</span><span>ศ</span><span>ส</span>
-                </div>
-                <div id="calendarGrid" class="grid grid-cols-7 gap-1 text-center text-xs">
-                    <!-- Dynamic Calendar Cells -->
-                </div>
-            </div>
-
-            <!-- Monthly Category Breakdown Chart -->
-            <div class="glass-card rounded-3xl p-4 border border-slate-700/40 space-y-3">
-                <h4 class="text-xs font-bold text-slate-300"><i class="fa-solid fa-chart-pie text-neonPurple mr-1"></i> สัดส่วนรายจ่ายตามหมวดหมู่ (%)</h4>
-                <div class="relative h-48 flex items-center justify-center">
-                    <canvas id="categoryDoughnutChart"></canvas>
-                </div>
-                <div id="categoryPercentList" class="space-y-2 text-xs pt-2">
-                    <!-- Dynamic Category % Bars -->
-                </div>
-            </div>
-
-            <!-- Insights Toggle Button -->
-            <button onclick="toggleInsightsModal()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-neonPurple to-neonCyan text-white font-bold text-xs shadow-lg neon-glow-purple flex items-center justify-center gap-2">
-                <i class="fa-solid fa-chart-line"></i> เข้าสู่โหมด Insights สรุปสถิติรายปี
-            </button>
-        </section>
-
-        <!-- PAGE 3: LOANS / DEBTS -->
-        <section id="pageLoans" class="space-y-4 hidden">
-            <div class="flex justify-between items-center">
-                <h3 class="text-sm font-bold font-mitr text-slate-300"><i class="fa-solid fa-hand-holding-dollar text-neonCyan mr-1"></i> รายการยืม - ให้ยืมเงิน</h3>
-                <button onclick="openAddLoanModal()" class="px-3 py-1.5 rounded-xl bg-neonPurple text-white text-xs font-bold shadow active:scale-95 transition">
-                    + เพิ่มรายการยืม
+        <!-- OCR Slip Scanner Section -->
+        <section class="bg-slate-800/50 border border-slate-700/80 p-5 rounded-2xl">
+            <h2 class="text-lg font-semibold mb-3 flex items-center gap-2 text-purple-300">
+                <i class="fa-solid fa-qrcode"></i> แสกนสลิปโอนเงิน (OCR Scanner)
+            </h2>
+            <div class="flex flex-col sm:flex-row items-center gap-4">
+                <input type="file" id="slipInput" accept="image/*" class="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700 cursor-pointer"/>
+                <button onclick="processSlip()" class="w-full sm:w-auto px-6 py-2 bg-purple-600 hover:bg-purple-500 rounded-xl font-medium text-white transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> อ่านข้อมูลสลิป
                 </button>
             </div>
+            <p id="ocrStatus" class="text-xs text-slate-400 mt-2 hidden"></p>
+        </section>
 
-            <!-- Total Loan Summary Badges -->
-            <div class="grid grid-cols-2 gap-3">
-                <div class="glass-card p-3 rounded-2xl border border-slate-800">
-                    <p class="text-[10px] text-slate-400">เราให้ยืม (ค้างคืน)</p>
-                    <p id="totalLent" class="text-sm font-bold text-neonCyan mt-0.5 privacy-target">฿0</p>
-                </div>
-                <div class="glass-card p-3 rounded-2xl border border-slate-800">
-                    <p class="text-[10px] text-slate-400">เรายืมเขา (ค้างจ่าย)</p>
-                    <p id="totalBorrowed" class="text-sm font-bold text-neonYellow mt-0.5 privacy-target">฿0</p>
-                </div>
+        <!-- Transaction Form -->
+        <section class="bg-slate-800/80 border border-slate-700 p-5 rounded-2xl space-y-4">
+            <h2 class="text-lg font-semibold text-pink-400 flex items-center gap-2">
+                <i class="fa-solid fa-pen-to-square"></i> บันทึกรายการใหม่
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <select id="txType" class="bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-slate-200">
+                    <option value="expense">รายจ่าย (Expense)</option>
+                    <option value="income">รายรับ (Income)</option>
+                    <option value="transfer">โอนระหว่างกระเป๋า</option>
+                    <option value="borrow">ยืม / คืนเงิน</option>
+                </select>
+                <input type="text" id="txTitle" placeholder="ชื่อรายการ" class="bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-slate-200">
+                <input type="number" id="txAmount" placeholder="จำนวนเงิน" class="bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-slate-200">
+                <button onclick="addTransaction()" class="bg-pink-600 hover:bg-pink-500 text-white rounded-xl font-medium p-2.5 transition">
+                    + เพิ่มรายการ
+                </button>
             </div>
+        </section>
 
-            <div id="loanList" class="space-y-2.5">
-                <!-- Dynamic Loan Item Cards -->
+        <!-- Transaction History -->
+        <section class="bg-slate-800/80 border border-slate-700 p-5 rounded-2xl">
+            <h2 class="text-lg font-semibold mb-4 text-slate-200 flex items-center gap-2">
+                <i class="fa-solid fa-list-check"></i> ประวัติรายการล่าสุด
+            </h2>
+            <div id="txList" class="space-y-3">
+                <p class="text-center text-slate-500 py-4">ยังไม่มีรายการที่บันทึก</p>
             </div>
         </section>
 
     </main>
 
-    <!-- Bottom Navigation Bar -->
-    <nav class="fixed bottom-0 left-0 right-0 z-30 glass-card rounded-t-3xl border-t border-slate-800/80 pb-safe">
-        <div class="max-w-md mx-auto flex justify-around items-center h-16 px-4">
-            <button onclick="switchPage('home')" id="navHome" class="flex flex-col items-center gap-1 text-neonPink transition">
-                <i class="fa-solid fa-house text-lg"></i>
-                <span class="text-[10px] font-mitr">หน้าหลัก</span>
-            </button>
-            <button onclick="switchPage('summary')" id="navSummary" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition">
-                <i class="fa-solid fa-chart-simple text-lg"></i>
-                <span class="text-[10px] font-mitr">สรุปผล</span>
-            </button>
-            <button onclick="switchPage('loans')" id="navLoans" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition">
-                <i class="fa-solid fa-handshake-angle text-lg"></i>
-                <span class="text-[10px] font-mitr">ยืม-คืนเงิน</span>
-            </button>
-        </div>
-    </nav>
-
-    <!-- MODAL: ADD TRANSACTION -->
-    <div id="addTransactionModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center hidden">
-        <div class="glass-card w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 max-h-[90vh] overflow-y-auto no-scrollbar border border-slate-700">
-            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-                <h3 class="font-bold text-base font-mitr text-slate-200">บันทึกรายการใหม่</h3>
-                <button onclick="closeModal('addTransactionModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-
-            <!-- Transaction Type Switch -->
-            <div class="grid grid-cols-2 gap-2 p-1 bg-darkBg rounded-2xl border border-slate-800">
-                <button type="button" id="btnTypeExpense" onclick="setTransactionType('expense')" class="py-2 rounded-xl text-xs font-bold transition bg-neonPink text-white">รายจ่าย</button>
-                <button type="button" id="btnTypeIncome" onclick="setTransactionType('income')" class="py-2 rounded-xl text-xs font-bold transition text-slate-400">รายรับ</button>
-            </div>
-
-            <!-- OCR Slip Upload Button -->
-            <div class="p-3 rounded-2xl bg-slate-900/80 border border-dashed border-neonCyan/50 flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <i class="fa-solid fa-file-invoice-dollar text-neonCyan text-xl"></i>
-                    <div>
-                        <p class="text-xs font-bold text-slate-200">สแกนสลิปโอนเงิน (OCR)</p>
-                        <p class="text-[10px] text-slate-400">ดึงยอดเงินและวันที่อัตโนมัติ</p>
-                    </div>
-                </div>
-                <label class="px-3 py-1.5 rounded-xl bg-neonCyan/20 text-neonCyan border border-neonCyan/40 text-xs font-bold cursor-pointer hover:bg-neonCyan/30 active:scale-95 transition">
-                    เลือกรูป
-                    <input type="file" id="slipInput" accept="image/*" onchange="processSlipOCR(event)" class="hidden">
-                </label>
-            </div>
-
-            <!-- Date Picker -->
-            <div>
-                <label class="text-[11px] text-slate-400 mb-1 block">วันที่บันทึก</label>
-                <input type="date" id="txDate" class="w-full bg-darkBg border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-neonPurple">
-            </div>
-
-            <!-- Amount & Title -->
-            <div class="space-y-3">
-                <div>
-                    <label class="text-[11px] text-slate-400 mb-1 block">จำนวนเงิน (บาท)</label>
-                    <input type="number" id="txAmount" placeholder="0.00" class="w-full bg-darkBg border border-slate-700 rounded-xl p-3 text-lg font-bold text-neonCyan focus:outline-none focus:border-neonCyan">
-                </div>
-                <div>
-                    <label class="text-[11px] text-slate-400 mb-1 block">ชื่อรายการ</label>
-                    <input type="text" id="txTitle" placeholder="เช่น ค่าข้าวผัดกะเพรา" class="w-full bg-darkBg border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-neonPurple">
-                </div>
-            </div>
-
-            <!-- Categories Grid -->
-            <div>
-                <div class="flex justify-between items-center mb-2">
-                    <label class="text-[11px] text-slate-400 block">เลือกหมวดหมู่</label>
-                    <button type="button" onclick="openAddCategoryModal()" class="text-[10px] text-neonCyan hover:underline">+ เพิ่มหมวดหมู่</button>
-                </div>
-                <div id="categoryGrid" class="grid grid-cols-4 gap-2 max-h-36 overflow-y-auto no-scrollbar">
-                    <!-- Dynamic Category Buttons -->
-                </div>
-            </div>
-
-            <button onclick="saveTransaction()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-neonPink to-neonPurple text-white font-bold text-sm shadow-lg neon-glow-pink active:scale-95 transition">
-                บันทึกรายการ
-            </button>
-        </div>
-    </div>
-
-    <!-- MODAL: INSIGHTS ANNUAL -->
-    <div id="insightsModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-lg flex items-center justify-center p-4 hidden">
-        <div class="glass-card w-full max-w-md rounded-3xl p-5 space-y-4 max-h-[90vh] overflow-y-auto no-scrollbar border border-slate-700">
-            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-                <h3 class="font-bold text-base font-mitr text-neonPurple"><i class="fa-solid fa-chart-line mr-1"></i> Insights สถิติประจำปี</h3>
-                <button onclick="closeModal('insightsModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-
-            <!-- Bar Chart -->
-            <div class="space-y-2">
-                <p class="text-xs font-bold text-slate-300">กราฟรายจ่ายรายเดือน (ม.ค. - ธ.ค.)</p>
-                <div class="h-44 bg-darkBg/60 p-2 rounded-2xl border border-slate-800">
-                    <canvas id="yearlyBarChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Statistics Grid Cards -->
-            <div class="grid grid-cols-2 gap-2 text-xs">
-                <div class="p-3 rounded-2xl bg-darkBg border border-slate-800">
-                    <p class="text-[10px] text-slate-400">จำนวนบันทึกทั้งหมด</p>
-                    <p id="statTotalCount" class="font-bold text-slate-200 mt-0.5">0 รายการ</p>
-                </div>
-                <div class="p-3 rounded-2xl bg-darkBg border border-slate-800">
-                    <p class="text-[10px] text-slate-400">เฉลี่ยรายจ่าย/วัน</p>
-                    <p id="statAvgPerDay" class="font-bold text-neonCyan mt-0.5 privacy-target">฿0</p>
-                </div>
-                <div class="p-3 rounded-2xl bg-darkBg border border-slate-800">
-                    <p class="text-[10px] text-slate-400">วันจ่ายหนักสุด</p>
-                    <p id="statMaxDayOfWeek" class="font-bold text-neonYellow mt-0.5">-</p>
-                </div>
-                <div class="p-3 rounded-2xl bg-darkBg border border-slate-800">
-                    <p class="text-[10px] text-slate-400">เดือนที่จ่ายมากสุด</p>
-                    <p id="statMaxMonth" class="font-bold text-neonPink mt-0.5">-</p>
-                </div>
-            </div>
-
-            <!-- Top Expense Category -->
-            <div class="p-3 rounded-2xl bg-neonPink/10 border border-neonPink/30 flex justify-between items-center">
-                <div>
-                    <p class="text-[10px] text-slate-400">หมวดหมู่ใช้เงินสูงสุด</p>
-                    <p id="statTopCatName" class="font-bold text-neonPink text-xs mt-0.5">-</p>
-                </div>
-                <p id="statTopCatAmount" class="font-bold text-slate-200 text-xs privacy-target">฿0</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL: ADD LOAN -->
-    <div id="addLoanModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center hidden">
-        <div class="glass-card w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 border border-slate-700">
-            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-                <h3 class="font-bold text-base font-mitr text-slate-200">บันทึกการยืม-ให้ยืมเงิน</h3>
-                <button onclick="closeModal('addLoanModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2 p-1 bg-darkBg rounded-2xl border border-slate-800">
-                <button type="button" id="btnLoanLent" onclick="setLoanType('lent')" class="py-2 rounded-xl text-xs font-bold transition bg-neonCyan text-white">ให้ยืมเงิน</button>
-                <button type="button" id="btnLoanBorrowed" onclick="setLoanType('borrowed')" class="py-2 rounded-xl text-xs font-bold transition text-slate-400">ยืมเงินคนอื่น</button>
-            </div>
-
-            <div class="space-y-3">
-                <div>
-                    <label class="text-[11px] text-slate-400 mb-1 block">ชื่อบุคคล</label>
-                    <input type="text" id="loanPerson" placeholder="เช่น เพื่อน A" class="w-full bg-darkBg border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-neonPurple">
-                </div>
-                <div>
-                    <label class="text-[11px] text-slate-400 mb-1 block">จำนวนเงิน (บาท)</label>
-                    <input type="number" id="loanAmount" placeholder="0.00" class="w-full bg-darkBg border border-slate-700 rounded-xl p-2.5 text-xs font-bold text-neonCyan focus:outline-none focus:border-neonPurple">
-                </div>
-            </div>
-
-            <button onclick="saveLoan()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-neonCyan to-neonPurple text-white font-bold text-xs shadow-lg neon-glow-cyan active:scale-95 transition">
-                บันทึกการยืม
-            </button>
-        </div>
-    </div>
-
-    <!-- MODAL: SETTINGS & BACKUP -->
-    <div id="settingsModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center hidden">
-        <div class="glass-card w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-4 border border-slate-700 max-h-[85vh] overflow-y-auto no-scrollbar">
-            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-                <h3 class="font-bold text-base font-mitr text-slate-200">ตั้งค่า & สำรองข้อมูล</h3>
-                <button onclick="closeModal('settingsModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-
-            <!-- Set Monthly Budget Section -->
-            <div class="p-3 rounded-2xl bg-darkBg border border-slate-800 space-y-2">
-                <p class="text-xs font-bold text-slate-300">ตั้งงบประมาณรายเดือนรวม</p>
-                <div class="flex gap-2">
-                    <input type="number" id="settingMonthlyBudget" placeholder="เช่น 15000" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-slate-200">
-                    <button onclick="saveBudgetSetting()" class="px-3 py-2 bg-neonGreen text-white text-xs font-bold rounded-xl">บันทึก</button>
-                </div>
-            </div>
-
-            <!-- Backup / Export Section -->
-            <div class="space-y-2 pt-2">
-                <p class="text-xs font-bold text-slate-300">การจัดการข้อมูล</p>
-                <div class="grid grid-cols-2 gap-2">
-                    <button onclick="exportCSV()" class="p-3 rounded-2xl bg-darkBg border border-slate-800 text-xs font-bold text-neonCyan flex flex-col items-center gap-1 active:scale-95 transition">
-                        <i class="fa-solid fa-file-csv text-lg"></i> Export CSV
-                    </button>
-                    <button onclick="exportJSON()" class="p-3 rounded-2xl bg-darkBg border border-slate-800 text-xs font-bold text-neonPurple flex flex-col items-center gap-1 active:scale-95 transition">
-                        <i class="fa-solid fa-file-code text-lg"></i> Backup JSON
-                    </button>
-                </div>
-                <label class="w-full p-3 rounded-2xl bg-darkBg border border-dashed border-slate-700 text-xs font-bold text-slate-300 flex items-center justify-center gap-2 cursor-pointer hover:bg-slate-900 transition">
-                    <i class="fa-solid fa-upload text-neonYellow"></i> Import JSON Data
-                    <input type="file" accept=".json" onchange="importJSON(event)" class="hidden">
-                </label>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL: ADD BILL -->
-    <div id="addBillModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center hidden">
-        <div class="glass-card w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-3 border border-slate-700">
-            <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                <h3 class="font-bold text-base font-mitr text-slate-200">เพิ่มรายการเตือนจ่ายบิล</h3>
-                <button onclick="closeModal('addBillModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <input type="text" id="billTitle" placeholder="ชื่อบิล (เช่น ค่าน้ำ, ค่าไฟ)" class="w-full bg-darkBg border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200">
-            <input type="number" id="billAmount" placeholder="จำนวนเงิน" class="w-full bg-darkBg border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200">
-            <input type="number" id="billDueDay" placeholder="วันครบกำหนดจ่ายของทุกเดือน (1-31)" min="1" max="31" class="w-full bg-darkBg border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200">
-            <button onclick="saveBill()" class="w-full py-2.5 rounded-xl bg-neonYellow text-black font-bold text-xs shadow active:scale-95 transition">บันทึกบิล</button>
-        </div>
-    </div>
-
-    <!-- JAVASCRIPT APP LOGIC -->
+    <!-- JavaScript App Logic -->
     <script>
-        // Default Categories
-        const defaultExpenseCategories = [
-            { id: 'exp1', name: 'อาหาร & เครื่องดื่ม', icon: 'fa-utensils', color: '#FF2E93' },
-            { id: 'exp2', name: 'การเดินทาง', icon: 'fa-car', color: '#A855F7' },
-            { id: 'exp3', name: 'ช้อปปิ้ง', icon: 'fa-bag-shopping', color: '#00F0FF' },
-            { id: 'exp4', name: 'บ้าน', icon: 'fa-house-chimney', color: '#10B981' },
-            { id: 'exp5', name: 'ค่าสาธารณูปโภค', icon: 'fa-bolt', color: '#F59E0B' },
-            { id: 'exp6', name: 'สุขภาพ', icon: 'fa-heart-pulse', color: '#EF4444' },
-            { id: 'exp7', name: 'ประกัน', icon: 'fa-shield-halved', color: '#3B82F6' },
-            { id: 'exp8', name: 'ความบันเทิง', icon: 'fa-gamepad', color: '#EC4899' },
-            { id: 'exp9', name: 'ความงาม', icon: 'fa-wand-magic-sparkles', color: '#F472B6' },
-            { id: 'exp10', name: 'การศึกษา', icon: 'fa-graduation-cap', color: '#6366F1' },
-            { id: 'exp11', name: 'ทำบุญ', icon: 'fa-hand-holding-heart', color: '#F97316' },
-            { id: 'exp12', name: 'รายจ่ายอื่นๆ', icon: 'fa-ellipsis', color: '#64748B' }
-        ];
-
-        const defaultIncomeCategories = [
-            { id: 'inc1', name: 'เงินเดือน', icon: 'fa-money-bill-wave', color: '#10B981' },
-            { id: 'inc2', name: 'โบนัส', icon: 'fa-gift', color: '#F59E0B' },
-            { id: 'inc3', name: 'ฟรีแลนซ์', icon: 'fa-laptop-code', color: '#00F0FF' },
-            { id: 'inc4', name: 'รับของขวัญ', icon: 'fa-box-open', color: '#EC4899' },
-            { id: 'inc5', name: 'ขายของ', icon: 'fa-store', color: '#A855F7' },
-            { id: 'inc6', name: 'รายรับอื่นๆ', icon: 'fa-coins', color: '#64748B' }
-        ];
-
-        // State Management
-        let appData = {
-            transactions: [],
-            loans: [],
-            bills: [],
-            expenseCategories: [...defaultExpenseCategories],
-            incomeCategories: [...defaultIncomeCategories],
-            pinCode: '1234',
-            monthlyBudget: 15000
-        };
-
-        let currentTxType = 'expense';
-        let currentSelectedCategory = null;
         let isPrivacyMode = false;
-        let enteredPin = '';
-        let categoryChartInstance = null;
-        let barChartInstance = null;
+        let transactions = JSON.parse(localStorage.getItem('mp_transactions')) || [];
 
-        // Initialization
-        window.addEventListener('DOMContentLoaded', () => {
-            loadFromLocalStorage();
-            initCurrentYear();
-            populateMonthYearDropdowns();
-            renderHome();
-            checkRecurringBills();
-            setTodayDateInput();
-        });
-
-        function loadFromLocalStorage() {
-            const saved = localStorage.getItem('cute_expense_data');
-            if (saved) {
-                try {
-                    appData = { ...appData, ...JSON.parse(saved) };
-                } catch(e) { console.error(e); }
-            }
+        // Google OAuth Callback Handler
+        function handleCredentialResponse(response) {
+            // ดึงข้อมูล JWT Token
+            const responsePayload = parseJwt(response.credential);
+            alert(`เข้าสู่ระบบสำเร็จ! ต้อนรับคุณ ${responsePayload.name}`);
+            console.log("Logged in User:", responsePayload);
         }
 
-        function saveData() {
-            localStorage.setItem('cute_expense_data', JSON.stringify(appData));
+        function parseJwt(token) {
+            let base64Url = token.split('.')[1];
+            let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            let jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            return JSON.parse(jsonPayload);
         }
 
-        function initCurrentYear() {
-            const y = new Date().getFullYear();
-            document.getElementById('currentYearDisplay').innerText = y;
-        }
-
-        function setTodayDateInput() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('txDate').value = today;
-        }
-
-        // Lock & PIN Screen
-        function pressPin(num) {
-            if (enteredPin.length < 4) {
-                enteredPin += num;
-                updatePinDots();
-                if (enteredPin.length === 4) {
-                    setTimeout(() => {
-                        if (enteredPin === appData.pinCode || appData.pinCode === '') {
-                            document.getElementById('lockScreen').classList.add('hidden');
-                        } else {
-                            alert('รหัส PIN ไม่ถูกต้อง (ค่าเริ่มต้นคือ 1234)');
-                        }
-                        enteredPin = '';
-                        updatePinDots();
-                    }, 200);
-                }
-            }
-        }
-
-        function clearPin() {
-            enteredPin = '';
-            updatePinDots();
-        }
-
-        function updatePinDots() {
-            const dots = document.querySelectorAll('.pin-dot');
-            dots.forEach((dot, idx) => {
-                if (idx < enteredPin.length) {
-                    dot.classList.add('bg-neonCyan', 'border-neonCyan');
+        // Privacy Mode Toggle
+        function togglePrivacy() {
+            isPrivacyMode = !isPrivacyMode;
+            const elements = document.querySelectorAll('.privacy-target');
+            const icon = document.getElementById('privacyIcon');
+            
+            elements.forEach(el => {
+                if (isPrivacyMode) {
+                    el.classList.add('privacy-masked');
                 } else {
-                    dot.classList.remove('bg-neonCyan', 'border-neonCyan');
+                    el.classList.remove('privacy-masked');
                 }
             });
+
+            icon.className = isPrivacyMode ? 'fa-solid fa-eye-slash text-pink-400' : 'fa-solid fa-eye';
         }
 
-        function triggerFaceID() {
-            document.getElementById('lockScreen').classList.add('hidden');
+        // Lock App Function
+        function lockApp() {
+            alert('ล็อกแอปพลิเคชันเรียบร้อยแล้ว');
         }
 
-        // Navigation
-        function switchPage(page) {
-            document.getElementById('pageHome').classList.add('hidden');
-            document.getElementById('pageSummary').classList.add('hidden');
-            document.getElementById('pageLoans').classList.add('hidden');
+        // Simple OCR Process
+        async function processSlip() {
+            const fileInput = document.getElementById('slipInput');
+            const status = document.getElementById('ocrStatus');
+            
+            if (!fileInput.files[0]) {
+                alert('กรุณาเลือกไฟล์สลิปก่อนครับ');
+                return;
+            }
 
-            document.getElementById('navHome').className = 'flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition';
-            document.getElementById('navSummary').className = 'flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition';
-            document.getElementById('navLoans').className = 'flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition';
+            status.classList.remove('hidden');
+            status.innerText = 'กำลังประมวลผลข้อความจากสลิป...';
 
-            if (page === 'home') {
-                document.getElementById('pageHome').classList.remove('hidden');
-                document.getElementById('navHome').className = 'flex flex-col items-center gap-1 text-neonPink transition';
-                renderHome();
-            } else if (page === 'summary') {
-                document.getElementById('pageSummary').classList.remove('hidden');
-                document.getElementById('navSummary').className = 'flex flex-col items-center gap-1 text-neonPurple transition';
-                renderSummary();
-            } else if (page === 'loans') {
-                document.getElementById('pageLoans').classList.remove('hidden');
-                document.getElementById('navLoans').className = 'flex flex-col items-center gap-1 text-neonCyan transition';
-                renderLoans();
+            try {
+                const worker = await Tesseract.createWorker('tha+eng');
+                const ret = await worker.recognize(fileInput.files[0]);
+                status.innerText = 'อ่านข้อมูลสำเร็จ!';
+                
+                // ตรวจหาจำนวนเงินเบื้องต้น
+                const text = ret.data.text;
+                const amountMatch = text.match(/([0-9,]+\.[0-9]{2})/);
+                if (amountMatch) {
+                    document.getElementById('txAmount').value = amountMatch[1].replace(',', '');
+                    document.getElementById('txTitle').value = 'รายการจากสลิป';
+                }
+                await worker.terminate();
+            } catch (err) {
+                status.innerText = 'เกิดข้อผิดพลาดในการอ่านสลิป';
+                console.error(err);
             }
         }
 
-        // Privacy Mode
-        function togglePrivacyMode() {
-            isPrivacyMode = !isPrivacyMode;
-            const icon = document.getElementById('privacyIcon');
-            const targets = document.querySelectorAll('.privacy-target');
+        // Add Transaction
+        function addTransaction() {
+            const title = document.getElementById('txTitle').value;
+            const amount = parseFloat(document.getElementById('txAmount').value);
+            const type = document.getElementById('txType').value;
 
-            if (isPrivacyMode) {
-                icon.className = 'fa-solid fa-eye-slash text-neonPink';
-                targets.forEach(el => el.classList.add('blur-amount'));
+            if (!title || isNaN(amount)) {
+                alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+                return;
+            }
+
+            const newTx = { id: Date.now(), title, amount, type, date: new Date().toLocaleDateString('th-TH') };
+            transactions.unshift(newTx);
+            localStorage.setItem('mp_transactions', JSON.stringify(transactions));
+            
+            // Clear Inputs
+            document.getElementById('txTitle').value = '';
+            document.getElementById('txAmount').value = '';
+            
+            renderTransactions();
+        }
+
+        // Render UI
+        function renderTransactions() {
+            const listEl = document.getElementById('txList');
+            let totalInc = 0;
+            let totalExp = 0;
+
+            if (transactions.length === 0) {
+                listEl.innerHTML = `<p class="text-center text-slate-500 py-4">ยังไม่มีรายการที่บันทึก</p>`;
             } else {
-                icon.className = 'fa-solid fa-eye';
-                targets.forEach(el => el.classList.remove('blur-amount'));
-            }
-        }
-
-        // Render Home Data
-        function renderHome() {
-            const currentYear = new Date().getFullYear();
-            let totalInc = 0, totalExp = 0;
-
-            appData.transactions.forEach(tx => {
-                const txYear = new Date(tx.date).getFullYear();
-                if (txYear === currentYear) {
+                listEl.innerHTML = transactions.map(tx => {
                     if (tx.type === 'income') totalInc += tx.amount;
                     if (tx.type === 'expense') totalExp += tx.amount;
-                }
-            });
 
-            const totalSavings = totalInc - totalExp;
-            const savingsRate = totalInc > 0 ? Math.max(0, Math.round((totalSavings / totalInc) * 100)) : 0;
+                    const color = tx.type === 'income' ? 'text-emerald-400' : 'text-rose-400';
+                    const sign = tx.type === 'income' ? '+' : '-';
 
-            document.getElementById('totalYearIncome').innerText = `฿${totalInc.toLocaleString()}`;
-            document.getElementById('totalYearExpense').innerText = `฿${totalExp.toLocaleString()}`;
-            document.getElementById('totalYearSavings').innerText = `฿${totalSavings.toLocaleString()}`;
-            document.getElementById('savingsRateBadge').innerText = `ออมได้ ${savingsRate}%`;
-
-            // Render Monthly Budget Progress Bar
-            const now = new Date();
-            const currentMonthExp = appData.transactions.filter(tx => {
-                const d = new Date(tx.date);
-                return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && tx.type === 'expense';
-            }).reduce((sum, tx) => sum + tx.amount, 0);
-
-            const budget = appData.monthlyBudget || 15000;
-            const percent = Math.min(100, Math.round((currentMonthExp / budget) * 100));
-            
-            document.getElementById('budgetText').innerText = `฿${currentMonthExp.toLocaleString()} / ฿${budget.toLocaleString()}`;
-            const bar = document.getElementById('budgetProgressBar');
-            bar.style.width = `${percent}%`;
-
-            if (percent <= 70) bar.className = 'bg-neonGreen h-2.5 rounded-full transition-all duration-500';
-            else if (percent <= 90) bar.className = 'bg-neonYellow h-2.5 rounded-full transition-all duration-500';
-            else bar.className = 'bg-neonRed h-2.5 rounded-full transition-all duration-500';
-
-            renderRecentTransactions();
-            renderBillReminders();
-        }
-
-        function renderRecentTransactions() {
-            const list = document.getElementById('recentTransactionList');
-            list.innerHTML = '';
-
-            const sorted = [...appData.transactions].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
-
-            if (sorted.length === 0) {
-                list.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">ยังไม่มีรายการบันทึก</p>`;
-                return;
-            }
-
-            sorted.forEach(tx => {
-                const isExp = tx.type === 'expense';
-                const color = isExp ? 'text-neonPink' : 'text-neonGreen';
-                const sign = isExp ? '-' : '+';
-
-                const card = document.createElement('div');
-                card.className = 'glass-card p-3 rounded-2xl flex items-center justify-between border border-slate-800';
-                card.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white text-xs" style="background-color: ${tx.categoryColor || '#A855F7'}">
-                            <i class="fa-solid ${tx.categoryIcon || 'fa-receipt'}"></i>
+                    return `
+                        <div class="flex justify-between items-center bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                            <div>
+                                <p class="font-medium text-slate-200">${tx.title}</p>
+                                <p class="text-xs text-slate-500">${tx.date}</p>
+                            </div>
+                            <span class="font-bold ${color} privacy-target ${isPrivacyMode ? 'privacy-masked' : ''}">
+                                ${sign}฿${tx.amount.toLocaleString()}
+                            </span>
                         </div>
-                        <div>
-                            <p class="text-xs font-bold text-slate-200">${tx.title}</p>
-                            <p class="text-[10px] text-slate-400">${tx.date} • ${tx.categoryName}</p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-xs font-bold ${color} privacy-target">${sign}฿${tx.amount.toLocaleString()}</p>
-                        <button onclick="deleteTransaction('${tx.id}')" class="text-[10px] text-slate-500 hover:text-neonRed transition"><i class="fa-solid fa-trash"></i></button>
-                    </div>
-                `;
-                list.appendChild(card);
-            });
-        }
-
-        // Add Transaction Modal Logic
-        function openAddTransactionModal(mode) {
-            setTransactionType('expense');
-            const dateInput = document.getElementById('txDate');
-            const today = new Date();
-            
-            if (mode === 'today') {
-                dateInput.value = today.toISOString().split('T')[0];
-                dateInput.min = today.toISOString().split('T')[0];
-            } else if (mode === 'backdate') {
-                const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-                dateInput.min = firstDayOfMonth;
-                dateInput.value = today.toISOString().split('T')[0];
-            }
-            
-            document.getElementById('addTransactionModal').classList.remove('hidden');
-        }
-
-        function setTransactionType(type) {
-            currentTxType = type;
-            const btnExp = document.getElementById('btnTypeExpense');
-            const btnInc = document.getElementById('btnTypeIncome');
-
-            if (type === 'expense') {
-                btnExp.className = 'py-2 rounded-xl text-xs font-bold transition bg-neonPink text-white';
-                btnInc.className = 'py-2 rounded-xl text-xs font-bold transition text-slate-400';
-            } else {
-                btnInc.className = 'py-2 rounded-xl text-xs font-bold transition bg-neonGreen text-white';
-                btnExp.className = 'py-2 rounded-xl text-xs font-bold transition text-slate-400';
-            }
-            renderCategoryGrid();
-        }
-
-        function renderCategoryGrid() {
-            const grid = document.getElementById('categoryGrid');
-            grid.innerHTML = '';
-            const categories = currentTxType === 'expense' ? appData.expenseCategories : appData.incomeCategories;
-
-            categories.forEach(cat => {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.onclick = () => selectCategory(cat);
-                btn.className = `p-2 rounded-2xl bg-darkBg border border-slate-800 flex flex-col items-center justify-center gap-1 active:scale-95 transition cat-btn-${cat.id}`;
-                btn.innerHTML = `
-                    <div class="w-7 h-7 rounded-xl flex items-center justify-center text-white text-xs" style="background-color: ${cat.color}">
-                        <i class="fa-solid ${cat.icon}"></i>
-                    </div>
-                    <span class="text-[9px] text-slate-300 truncate w-full text-center">${cat.name}</span>
-                `;
-                grid.appendChild(btn);
-            });
-
-            if (categories.length > 0) selectCategory(categories[0]);
-        }
-
-        function selectCategory(cat) {
-            currentSelectedCategory = cat;
-            document.querySelectorAll('#categoryGrid button').forEach(b => b.classList.remove('border-neonCyan', 'neon-glow-cyan'));
-            const activeBtn = document.querySelector(`.cat-btn-${cat.id}`);
-            if (activeBtn) activeBtn.classList.add('border-neonCyan', 'neon-glow-cyan');
-        }
-
-        function saveTransaction() {
-            const amount = parseFloat(document.getElementById('txAmount').value);
-            const title = document.getElementById('txTitle').value.trim();
-            const date = document.getElementById('txDate').value;
-
-            if (!amount || !title || !date || !currentSelectedCategory) {
-                alert('กรุณากรอกข้อมูลให้ครบถ้วน');
-                return;
+                    `;
+                }).join('');
             }
 
-            const newTx = {
-                id: 'tx_' + Date.now(),
-                type: currentTxType,
-                amount: amount,
-                title: title,
-                date: date,
-                categoryId: currentSelectedCategory.id,
-                categoryName: currentSelectedCategory.name,
-                categoryIcon: currentSelectedCategory.icon,
-                categoryColor: currentSelectedCategory.color
-            };
-
-            appData.transactions.push(newTx);
-            saveData();
-            closeModal('addTransactionModal');
-            document.getElementById('txAmount').value = '';
-            document.getElementById('txTitle').value = '';
-            renderHome();
+            document.getElementById('totalIncome').innerText = `฿${totalInc.toLocaleString()}`;
+            document.getElementById('totalExpense').innerText = `฿${totalExp.toLocaleString()}`;
+            document.getElementById('totalBalance').innerText = `฿${(totalInc - totalExp).toLocaleString()}`;
         }
 
-        function deleteTransaction(id) {
-            if (confirm('ต้องการลบรายการนี้ใช่หรือไม่?')) {
-                appData.transactions = appData.transactions.filter(t => t.id !== id);
-                saveData();
-                renderHome();
-            }
-        }
-
-        // Summary & Insights
-        function populateMonthYearDropdowns() {
-            const monthSelect = document.getElementById('summaryMonth');
-            const yearSelect = document.getElementById('summaryYear');
-
-            const months = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
-            monthSelect.innerHTML = months.map((m, idx) => `<option value="${idx}">${m}</option>`).join('');
-
-            const now = new Date();
-            monthSelect.value = now.getMonth();
-
-            const currentYear = now.getFullYear();
-            yearSelect.innerHTML = `<option value="${currentYear}">${currentYear}</option>
-                                    <option value="${currentYear - 1}">${currentYear - 1}</option>`;
-        }
-
-        function renderSummary() {
-            const m = parseInt(document.getElementById('summaryMonth').value);
-            const y = parseInt(document.getElementById('summaryYear').value);
-
-            let mInc = 0, mExp = 0;
-            const catMap = {};
-
-            appData.transactions.forEach(tx => {
-                const d = new Date(tx.date);
-                if (d.getMonth() === m && d.getFullYear() === y) {
-                    if (tx.type === 'income') mInc += tx.amount;
-                    if (tx.type === 'expense') {
-                        mExp += tx.amount;
-                        catMap[tx.categoryName] = (catMap[tx.categoryName] || 0) + tx.amount;
-                    }
-                }
-            });
-
-            document.getElementById('monthlyIncome').innerText = `฿${mInc.toLocaleString()}`;
-            document.getElementById('monthlyExpense').innerText = `฿${mExp.toLocaleString()}`;
-
-            renderCalendarGrid(m, y);
-            renderCategoryChartAndPercent(catMap, mExp);
-        }
-
-        function renderCalendarGrid(m, y) {
-            const grid = document.getElementById('calendarGrid');
-            grid.innerHTML = '';
-
-            const firstDay = new Date(y, m, 1).getDay();
-            const daysInMonth = new Date(y, m + 1, 0).getDate();
-
-            for (let i = 0; i < firstDay; i++) {
-                grid.appendChild(document.createElement('div'));
-            }
-
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayExp = appData.transactions.filter(tx => {
-                    const d = new Date(tx.date);
-                    return d.getDate() === day && d.getMonth() === m && d.getFullYear() === y && tx.type === 'expense';
-                }).reduce((sum, tx) => sum + tx.amount, 0);
-
-                const cell = document.createElement('div');
-                cell.className = 'p-1 rounded-xl bg-darkBg border border-slate-800 flex flex-col items-center justify-between min-h-[42px]';
-                cell.innerHTML = `
-                    <span class="text-[9px] text-slate-400 font-bold">${day}</span>
-                    ${dayExp > 0 ? `<span class="text-[8px] text-neonPink font-bold truncate w-full privacy-target">฿${dayExp}</span>` : ''}
-                `;
-                grid.appendChild(cell);
-            }
-        }
-
-        function renderCategoryChartAndPercent(catMap, totalExp) {
-            const list = document.getElementById('categoryPercentList');
-            list.innerHTML = '';
-
-            const labels = Object.keys(catMap);
-            const data = Object.values(catMap);
-            const colors = ['#FF2E93', '#A855F7', '#00F0FF', '#10B981', '#F59E0B', '#EF4444', '#3B82F6'];
-
-            if (categoryChartInstance) categoryChartInstance.destroy();
-
-            const ctx = document.getElementById('categoryDoughnutChart').getContext('2d');
-            categoryChartInstance = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: data,
-                        backgroundColor: colors,
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } }
-                }
-            });
-
-            labels.forEach((label, idx) => {
-                const amount = catMap[label];
-                const pct = totalExp > 0 ? ((amount / totalExp) * 100).toFixed(1) : 0;
-
-                const row = document.createElement('div');
-                row.className = 'space-y-1';
-                row.innerHTML = `
-                    <div class="flex justify-between text-[11px] text-slate-300">
-                        <span>${label}</span>
-                        <span class="font-bold privacy-target">฿${amount.toLocaleString()} (${pct}%)</span>
-                    </div>
-                    <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                        <div class="h-1.5 rounded-full" style="width: ${pct}%; background-color: ${colors[idx % colors.length]}"></div>
-                    </div>
-                `;
-                list.appendChild(row);
-            });
-        }
-
-        function toggleInsightsModal() {
-            document.getElementById('insightsModal').classList.remove('hidden');
-            renderYearlyInsights();
-        }
-
-        function renderYearlyInsights() {
-            const currentYear = new Date().getFullYear();
-            const monthlySums = new Array(12).fill(0);
-            let totalCount = 0;
-            let totalExpYear = 0;
-            const catMap = {};
-            const dayOfWeekMap = new Array(7).fill(0);
-
-            appData.transactions.forEach(tx => {
-                const d = new Date(tx.date);
-                if (d.getFullYear() === currentYear && tx.type === 'expense') {
-                    monthlySums[d.getMonth()] += tx.amount;
-                    totalCount++;
-                    totalExpYear += tx.amount;
-                    catMap[tx.categoryName] = (catMap[tx.categoryName] || 0) + tx.amount;
-                    dayOfWeekMap[d.getDay()] += tx.amount;
-                }
-            });
-
-            if (barChartInstance) barChartInstance.destroy();
-
-            const ctx = document.getElementById('yearlyBarChart').getContext('2d');
-            barChartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'],
-                    datasets: [{
-                        data: monthlySums,
-                        backgroundColor: '#A855F7',
-                        borderRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { ticks: { color: '#94A3B8', font: { size: 9 } } },
-                        y: { ticks: { color: '#94A3B8', font: { size: 9 } } }
-                    }
-                }
-            });
-
-            document.getElementById('statTotalCount').innerText = `${totalCount} รายการ`;
-            document.getElementById('statAvgPerDay').innerText = `฿${Math.round(totalExpYear / 365).toLocaleString()}`;
-
-            const days = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
-            const maxDayIdx = dayOfWeekMap.indexOf(Math.max(...dayOfWeekMap));
-            document.getElementById('statMaxDayOfWeek').innerText = totalExpYear > 0 ? days[maxDayIdx] : '-';
-
-            const months = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
-            const maxMonthIdx = monthlySums.indexOf(Math.max(...monthlySums));
-            document.getElementById('statMaxMonth').innerText = totalExpYear > 0 ? months[maxMonthIdx] : '-';
-
-            let topCat = '-', topCatAmt = 0;
-            Object.keys(catMap).forEach(cat => {
-                if (catMap[cat] > topCatAmt) {
-                    topCatAmt = catMap[cat];
-                    topCat = cat;
-                }
-            });
-            document.getElementById('statTopCatName').innerText = topCat;
-            document.getElementById('statTopCatAmount').innerText = `฿${topCatAmt.toLocaleString()}`;
-        }
-
-        // OCR Slip Scanner
-        function processSlipOCR(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            Tesseract.recognize(file, 'tha+eng', { logger: m => console.log(m) })
-                .then(({ data: { text } }) => {
-                    const amountMatch = text.match(/(\d{1,3}(,\d{3})*(\.\d{2})?)\s*(บาท|THB)/i) || text.match(/จำนวนเงิน\s*(\d+(\.\d{2})?)/);
-                    if (amountMatch) {
-                        const cleanAmount = amountMatch[1].replace(',', '');
-                        document.getElementById('txAmount').value = cleanAmount;
-                    }
-                    document.getElementById('txTitle').value = 'สแกนสลิปโอนเงิน';
-                    alert('สแกนอ่านข้อมูลสลิปเรียบร้อยแล้ว!');
-                })
-                .catch(err => {
-                    alert('ไม่สามารถอ่านข้อมูลจากสลิปได้ กรุณากรอกด้วยตนเอง');
-                });
-        }
-
-        // Loans Management
-        let currentLoanType = 'lent';
-        function openAddLoanModal() {
-            document.getElementById('addLoanModal').classList.remove('hidden');
-        }
-
-        function setLoanType(type) {
-            currentLoanType = type;
-            const btnLent = document.getElementById('btnLoanLent');
-            const btnBor = document.getElementById('btnLoanBorrowed');
-
-            if (type === 'lent') {
-                btnLent.className = 'py-2 rounded-xl text-xs font-bold transition bg-neonCyan text-white';
-                btnBor.className = 'py-2 rounded-xl text-xs font-bold transition text-slate-400';
-            } else {
-                btnBor.className = 'py-2 rounded-xl text-xs font-bold transition bg-neonYellow text-black';
-                btnLent.className = 'py-2 rounded-xl text-xs font-bold transition text-slate-400';
-            }
-        }
-
-        function saveLoan() {
-            const person = document.getElementById('loanPerson').value.trim();
-            const amount = parseFloat(document.getElementById('loanAmount').value);
-
-            if (!person || !amount) {
-                alert('กรุณากรอกข้อมูลให้ครบถ้วน');
-                return;
-            }
-
-            appData.loans.push({
-                id: 'loan_' + Date.now(),
-                type: currentLoanType,
-                person: person,
-                amount: amount,
-                isSettled: false,
-                date: new Date().toISOString().split('T')[0]
-            });
-
-            saveData();
-            closeModal('addLoanModal');
-            document.getElementById('loanPerson').value = '';
-            document.getElementById('loanAmount').value = '';
-            renderLoans();
-        }
-
-        function renderLoans() {
-            const list = document.getElementById('loanList');
-            list.innerHTML = '';
-
-            let totalLent = 0, totalBorrowed = 0;
-
-            appData.loans.forEach(loan => {
-                if (!loan.isSettled) {
-                    if (loan.type === 'lent') totalLent += loan.amount;
-                    if (loan.type === 'borrowed') totalBorrowed += loan.amount;
-                }
-
-                const card = document.createElement('div');
-                card.className = `glass-card p-3 rounded-2xl flex items-center justify-between border ${loan.isSettled ? 'border-slate-800 opacity-60' : 'border-slate-700'}`;
-                card.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-xl flex items-center justify-center text-xs ${loan.type === 'lent' ? 'bg-neonCyan/20 text-neonCyan' : 'bg-neonYellow/20 text-neonYellow'}">
-                            <i class="fa-solid ${loan.type === 'lent' ? 'fa-hand-holding-hand' : 'fa-hand-holding-dollar'}"></i>
-                        </div>
-                        <div>
-                            <p class="text-xs font-bold text-slate-200">${loan.person} <span class="text-[9px] text-slate-400">(${loan.type === 'lent' ? 'ให้ยืม' : 'ยืมเขา'})</span></p>
-                            <p class="text-[10px] text-slate-400">${loan.date}</p>
-                        </div>
-                    </div>
-                    <div class="text-right flex items-center gap-2">
-                        <div>
-                            <p class="text-xs font-bold ${loan.type === 'lent' ? 'text-neonCyan' : 'text-neonYellow'} privacy-target">฿${loan.amount.toLocaleString()}</p>
-                            <p class="text-[9px] ${loan.isSettled ? 'text-neonGreen' : 'text-slate-500'}">${loan.isSettled ? 'คืนแล้ว' : 'ค้างชำระ'}</p>
-                        </div>
-                        ${!loan.isSettled ? `<button onclick="settleLoan('${loan.id}')" class="px-2 py-1 bg-neonGreen/20 text-neonGreen border border-neonGreen/40 rounded-lg text-[10px] font-bold">ยืนยันคืน</button>` : ''}
-                    </div>
-                `;
-                list.appendChild(card);
-            });
-
-            document.getElementById('totalLent').innerText = `฿${totalLent.toLocaleString()}`;
-            document.getElementById('totalBorrowed').innerText = `฿${totalBorrowed.toLocaleString()}`;
-        }
-
-        function settleLoan(id) {
-            const loan = appData.loans.find(l => l.id === id);
-            if (loan) {
-                loan.isSettled = true;
-                saveData();
-                renderLoans();
-            }
-        }
-
-        // Bill Reminders
-        function openAddBillModal() {
-            document.getElementById('addBillModal').classList.remove('hidden');
-        }
-
-        function saveBill() {
-            const title = document.getElementById('billTitle').value.trim();
-            const amount = parseFloat(document.getElementById('billAmount').value);
-            const day = parseInt(document.getElementById('billDueDay').value);
-
-            if (!title || !amount || !day) return;
-
-            appData.bills.push({
-                id: 'bill_' + Date.now(),
-                title: title,
-                amount: amount,
-                dueDay: day
-            });
-
-            saveData();
-            closeModal('addBillModal');
-            renderBillReminders();
-        }
-
-        function renderBillReminders() {
-            const list = document.getElementById('billReminderList');
-            list.innerHTML = '';
-
-            if (appData.bills.length === 0) {
-                list.innerHTML = `<p class="text-[10px] text-slate-500">ไม่มีรายการบิลที่ตั้งเตือนไว้</p>`;
-                return;
-            }
-
-            appData.bills.forEach(bill => {
-                const card = document.createElement('div');
-                card.className = 'p-2 rounded-xl bg-darkBg border border-slate-800 flex justify-between items-center';
-                card.innerHTML = `
-                    <div>
-                        <p class="font-bold text-slate-200">${bill.title}</p>
-                        <p class="text-[9px] text-slate-400">ครบกำหนดวันที่ ${bill.dueDay} ของทุกเดือน</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="font-bold text-neonYellow privacy-target">฿${bill.amount.toLocaleString()}</p>
-                        <button onclick="payBill('${bill.id}')" class="text-[9px] text-neonGreen hover:underline">กดจ่ายแล้ว</button>
-                    </div>
-                `;
-                list.appendChild(card);
-            });
-        }
-
-        function payBill(id) {
-            const bill = appData.bills.find(b => b.id === id);
-            if (bill) {
-                appData.transactions.push({
-                    id: 'tx_' + Date.now(),
-                    type: 'expense',
-                    amount: bill.amount,
-                    title: `ชำระบิล: ${bill.title}`,
-                    date: new Date().toISOString().split('T')[0],
-                    categoryId: 'exp5',
-                    categoryName: 'ค่าสาธารณูปโภค',
-                    categoryIcon: 'fa-bolt',
-                    categoryColor: '#F59E0B'
-                });
-                saveData();
-                renderHome();
-                alert('ลงบันทึกการชำระบิลเรียบร้อย!');
-            }
-        }
-
-        function checkRecurringBills() {
-            // Placeholder for automatic bill check on startup
-        }
-
-        // Settings & Export/Import
-        function openSettingsModal() {
-            document.getElementById('settingMonthlyBudget').value = appData.monthlyBudget || 15000;
-            document.getElementById('settingsModal').classList.remove('hidden');
-        }
-
-        function saveBudgetSetting() {
-            const val = parseFloat(document.getElementById('settingMonthlyBudget').value);
-            if (val) {
-                appData.monthlyBudget = val;
-                saveData();
-                renderHome();
-                closeModal('settingsModal');
-            }
-        }
-
-        function exportCSV() {
-            let csv = '\uFEFFDate,Type,Title,Category,Amount\n';
-            appData.transactions.forEach(tx => {
-                csv += `"${tx.date}","${tx.type}","${tx.title}","${tx.categoryName}",${tx.amount}\n`;
-            });
-
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `expense_backup_${new Date().toISOString().split('T')[0]}.csv`;
-            a.click();
-        }
-
-        function exportJSON() {
-            const blob = new Blob([JSON.stringify(appData, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `expense_data_${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
-        }
-
-        function importJSON(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const imported = JSON.parse(e.target.result);
-                    appData = { ...appData, ...imported };
-                    saveData();
-                    renderHome();
-                    closeModal('settingsModal');
-                    alert('นำเข้าข้อมูลเรียบร้อยแล้ว!');
-                } catch(err) { alert('ไฟล์ JSON ไม่ถูกต้อง'); }
-            };
-            reader.readAsText(file);
-        }
-
-        function closeModal(id) {
-            document.getElementById(id).classList.add('hidden');
-        }
+        // Init
+        renderTransactions();
     </script>
 </body>
 </html>
