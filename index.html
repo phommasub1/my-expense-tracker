@@ -708,23 +708,110 @@
         </div>
     </div>
 
-    <!-- Export Modal -->
+    <!-- Export Modal (Matches Image 1) -->
     <div id="exportModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
         <div class="bg-themeCard w-full max-w-md rounded-3xl p-5 border border-themeBorder space-y-4 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center pb-2 border-b border-themeBorder">
                 <h3 class="text-sm font-bold text-themeText flex items-center gap-2">
-                    <i class="fa-solid fa-file-export text-amber-600"></i> ส่งออกข้อมูล (Export)
+                    <i class="fa-solid fa-file-export text-amber-600"></i> ส่งออกข้อมูล
                 </h3>
                 <button onclick="closeModal('exportModal')" class="text-themeMuted hover:text-themeText"><i class="fa-solid fa-xmark"></i></button>
             </div>
+
+            <!-- Format Tabs -->
             <div class="grid grid-cols-3 gap-2 bg-themeSub p-1 rounded-2xl text-center">
-                <button onclick="setExportFormat('xlsx')" id="btnFormatXlsx" class="py-2 rounded-xl text-xs font-semibold bg-amber-600 text-white transition">Excel</button>
+                <button onclick="setExportFormat('xlsx')" id="btnFormatXlsx" class="py-2 rounded-xl text-xs font-semibold bg-amber-500 text-amber-950 shadow-sm transition">Excel</button>
                 <button onclick="setExportFormat('csv')" id="btnFormatCsv" class="py-2 rounded-xl text-xs font-semibold text-themeMuted transition">CSV</button>
                 <button onclick="setExportFormat('pdf')" id="btnFormatPdf" class="py-2 rounded-xl text-xs font-semibold text-themeMuted transition">PDF</button>
             </div>
-            <button onclick="execExport()" class="w-full py-2.5 rounded-xl bg-amber-600 text-white text-xs font-bold hover:opacity-95 transition shadow-sm">
-                ดาวน์โหลดไฟล์ส่งออก
-            </button>
+
+            <!-- Summary Box -->
+            <div class="bg-themeSub/50 p-3 rounded-2xl space-y-1.5 text-xs">
+                <div class="flex justify-between text-themeMuted">
+                    <span>จำนวนรายการทั้งหมด</span>
+                    <span id="exportTotalCount" class="text-themeText font-semibold">0 รายการ</span>
+                </div>
+                <div class="flex justify-between text-themeMuted">
+                    <span>ช่วงเวลา</span>
+                    <span id="exportDateRange" class="text-themeText font-semibold">-</span>
+                </div>
+                <div class="flex justify-between text-themeMuted">
+                    <span>รายจ่ายทั้งหมด</span>
+                    <span id="exportTotalExpense" class="text-rose-500 font-semibold">฿0.0</span>
+                </div>
+                <div class="flex justify-between text-themeMuted">
+                    <span>ให้ยืมทั้งหมด</span>
+                    <span id="exportTotalLend" class="text-amber-600 font-semibold">฿0.0</span>
+                </div>
+            </div>
+
+            <!-- Field Selection Checkboxes -->
+            <div class="space-y-2">
+                <span class="text-[11px] text-themeMuted font-bold uppercase tracking-wide">เลือกข้อมูลที่ต้องการส่งออก</span>
+                <div class="grid grid-cols-3 gap-2 text-[11px]">
+                    <label class="flex items-center space-x-1.5 bg-themeSub/40 p-2 rounded-xl border border-themeBorder cursor-pointer">
+                        <input type="checkbox" checked class="accent-amber-600"> <span>ลำดับ</span>
+                    </label>
+                    <label class="flex items-center space-x-1.5 bg-themeSub/40 p-2 rounded-xl border border-themeBorder cursor-pointer">
+                        <input type="checkbox" checked class="accent-amber-600"> <span>ชื่อรายการ</span>
+                    </label>
+                    <label class="flex items-center space-x-1.5 bg-themeSub/40 p-2 rounded-xl border border-themeBorder cursor-pointer">
+                        <input type="checkbox" checked class="accent-amber-600"> <span>หมวดหมู่</span>
+                    </label>
+                    <label class="flex items-center space-x-1.5 bg-themeSub/40 p-2 rounded-xl border border-themeBorder cursor-pointer">
+                        <input type="checkbox" checked class="accent-amber-600"> <span>ประเภท</span>
+                    </label>
+                    <label class="flex items-center space-x-1.5 bg-themeSub/40 p-2 rounded-xl border border-themeBorder cursor-pointer">
+                        <input type="checkbox" checked class="accent-amber-600"> <span>จำนวน</span>
+                    </label>
+                    <label class="flex items-center space-x-1.5 bg-themeSub/40 p-2 rounded-xl border border-themeBorder cursor-pointer">
+                        <input type="checkbox" checked class="accent-amber-600"> <span>วันที่</span>
+                    </label>
+                    <label class="flex items-center space-x-1.5 bg-themeSub/40 p-2 rounded-xl border border-themeBorder cursor-pointer">
+                        <input type="checkbox" checked class="accent-amber-600"> <span>กระเป๋า</span>
+                    </label>
+                    <label class="flex items-center space-x-1.5 bg-themeSub/40 p-2 rounded-xl border border-themeBorder cursor-pointer">
+                        <input type="checkbox" class="accent-amber-600"> <span>แท็ก</span>
+                    </label>
+                    <label class="flex items-center space-x-1.5 bg-themeSub/40 p-2 rounded-xl border border-themeBorder cursor-pointer">
+                        <input type="checkbox" checked class="accent-amber-600"> <span>บันทึกช่วยจำ</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Preview Table -->
+            <div class="space-y-1">
+                <div class="flex justify-between items-center text-[11px] text-themeMuted">
+                    <span>ตัวอย่างข้อมูล</span>
+                    <span>ตัวอย่าง 3 รายการแรก</span>
+                </div>
+                <div class="overflow-x-auto border border-themeBorder rounded-xl">
+                    <table class="w-full text-left text-[10px]">
+                        <thead class="bg-themeSub text-themeText font-semibold border-b border-themeBorder">
+                            <tr>
+                                <th class="p-1.5">ลำดับ</th>
+                                <th class="p-1.5">ชื่อรายการ</th>
+                                <th class="p-1.5">หมวดหมู่</th>
+                                <th class="p-1.5">ประเภท</th>
+                                <th class="p-1.5">จำนวน</th>
+                                <th class="p-1.5">วันที่</th>
+                            </tr>
+                        </thead>
+                        <tbody id="exportPreviewTableBody" class="divide-y divide-themeBorder text-themeMuted">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="grid grid-cols-2 gap-2 pt-2">
+                <button onclick="closeModal('exportModal')" class="py-2.5 rounded-xl bg-themeSub text-themeText text-xs font-semibold hover:bg-themeBorder transition">
+                    ยกเลิก
+                </button>
+                <button onclick="execExport()" id="exportSubmitBtn" class="py-2.5 rounded-xl bg-amber-500 text-amber-950 text-xs font-bold hover:opacity-90 transition shadow-sm">
+                    ส่งออก Excel
+                </button>
+            </div>
         </div>
     </div>
 
@@ -765,6 +852,11 @@
             loadAllData();
             initGoogleOAuth();
             populateSelects();
+
+            // หากเคยล็อกอิน Google ไว้แล้ว ให้ลองดึงข้อมูลอัตโนมัติเบื้องหลัง
+            if (googleAccessToken) {
+                syncFromGoogleDrive(true);
+            }
         });
 
         function populateSelects() {
@@ -785,7 +877,7 @@
             }
         }
 
-        // GOOGLE OAUTH
+        // GOOGLE OAUTH & DRIVE API SYNC
         function initGoogleOAuth() {
             if (window.google && window.google.accounts) {
                 tokenClient = google.accounts.oauth2.initTokenClient({
@@ -797,7 +889,7 @@
                         localStorage.setItem('MP_G_ACCESS_TOKEN', googleAccessToken);
                         await fetchGoogleUserInfo();
                         updateGoogleAuthUI();
-                        syncFromGoogleDrive();
+                        syncFromGoogleDrive(false);
                     }
                 });
             }
@@ -888,8 +980,11 @@
             }
         }
 
-        async function syncFromGoogleDrive() {
-            if (!googleAccessToken) return;
+        async function syncFromGoogleDrive(silent = false) {
+            if (!googleAccessToken) {
+                if (!silent) alert('กรุณาเชื่อมต่อ Google Account ก่อนดึงข้อมูล');
+                return;
+            }
             try {
                 const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='MoneyPod_AutoBackup.json' and trashed=false`, {
                     headers: { Authorization: `Bearer ${googleAccessToken}` }
@@ -907,9 +1002,16 @@
                     if (driveData.installments) localStorage.setItem('MP_INSTALLMENTS', JSON.stringify(driveData.installments));
                     if (driveData.monthlyBudget) localStorage.setItem('MP_BUDGET', driveData.monthlyBudget);
                     if (driveData.pin) localStorage.setItem('MP_PIN', driveData.pin);
+                    
                     loadAllData();
+                    if (!silent) alert('ดึงข้อมูลจาก Google Drive สำเร็จ!');
+                } else {
+                    if (!silent) alert('ไม่พบไฟล์สำรองข้อมูลใน Google Drive ของคุณ');
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) {
+                console.error(e);
+                if (!silent) alert('เกิดข้อผิดพลาดในการดึงข้อมูลจาก Google Drive');
+            }
         }
 
         // DATA & RENDERING
@@ -962,7 +1064,10 @@
             }
         }
 
-        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+            if (id === 'exportModal') updateExportModalUI();
+        }
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
         function togglePrivacy() {
@@ -1326,8 +1431,79 @@
             reader.readAsText(file);
         }
 
-        function setExportFormat(fmt) { currentExportFormat = fmt; }
+        function setExportFormat(fmt) {
+            currentExportFormat = fmt;
+            const btnX = document.getElementById('btnFormatXlsx');
+            const btnC = document.getElementById('btnFormatCsv');
+            const btnP = document.getElementById('btnFormatPdf');
+            const submitBtn = document.getElementById('exportSubmitBtn');
+
+            btnX.className = "py-2 rounded-xl text-xs font-semibold text-themeMuted transition";
+            btnC.className = "py-2 rounded-xl text-xs font-semibold text-themeMuted transition";
+            btnP.className = "py-2 rounded-xl text-xs font-semibold text-themeMuted transition";
+
+            if (fmt === 'xlsx') {
+                btnX.className = "py-2 rounded-xl text-xs font-semibold bg-amber-500 text-amber-950 shadow-sm transition";
+                submitBtn.innerText = "ส่งออก Excel";
+            } else if (fmt === 'csv') {
+                btnC.className = "py-2 rounded-xl text-xs font-semibold bg-amber-500 text-amber-950 shadow-sm transition";
+                submitBtn.innerText = "ส่งออก CSV";
+            } else {
+                btnP.className = "py-2 rounded-xl text-xs font-semibold bg-amber-500 text-amber-950 shadow-sm transition";
+                submitBtn.innerText = "ส่งออก PDF";
+            }
+        }
+
+        function updateExportModalUI() {
+            document.getElementById('exportTotalCount').innerText = `${transactions.length} รายการ`;
+            
+            let totalExp = 0, totalLend = 0;
+            let dates = [];
+            transactions.forEach(t => {
+                if (t.type === 'expense') totalExp += t.amount;
+                dates.push(t.date);
+            });
+            debts.forEach(d => {
+                if (d.type === 'lend') totalLend += d.balance;
+            });
+
+            if (dates.length > 0) {
+                dates.sort();
+                document.getElementById('exportDateRange').innerText = `${dates[0]} - ${dates[dates.length - 1]}`;
+            } else {
+                document.getElementById('exportDateRange').innerText = '-';
+            }
+
+            document.getElementById('exportTotalExpense').innerText = `฿${totalExp.toLocaleString()}`;
+            document.getElementById('exportTotalLend').innerText = `฿${totalLend.toLocaleString()}`;
+
+            const tbody = document.getElementById('exportPreviewTableBody');
+            tbody.innerHTML = '';
+            const previewItems = transactions.slice(0, 3);
+            if (previewItems.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-2 text-center text-themeMuted">ไม่มีข้อมูลตัวอย่าง</td></tr>`;
+            } else {
+                previewItems.forEach((t, idx) => {
+                    tbody.innerHTML += `
+                        <tr class="border-b border-themeBorder">
+                            <td class="p-1.5">${idx + 1}</td>
+                            <td class="p-1.5">${t.note || t.category}</td>
+                            <td class="p-1.5">${t.category}</td>
+                            <td class="p-1.5">${t.type === 'expense' ? 'รายจ่าย' : 'รายรับ'}</td>
+                            <td class="p-1.5">${t.amount} บาท</td>
+                            <td class="p-1.5">${t.date}</td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+
         function execExport() {
+            if (transactions.length === 0) {
+                alert('ยังไม่มีข้อมูลสำหรับส่งออก');
+                return;
+            }
+
             if (currentExportFormat === 'xlsx') {
                 const ws = XLSX.utils.json_to_sheet(transactions);
                 const wb = XLSX.utils.book_new();
@@ -1338,7 +1514,7 @@
                 transactions.forEach(t => {
                     csv += `"${t.id}","${t.type}",${t.amount},"${t.category}","${t.date}","${t.note || ''}"\n`;
                 });
-                const blob = new Blob([csv], { type: 'text/csv' });
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
