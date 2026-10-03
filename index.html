@@ -458,7 +458,7 @@
     </nav>
 
     <!-- MODALS SECTION -->
-    <!-- Summary Report Modal -->
+    <!-- Summary Report Modal (NEW) -->
     <div id="summaryReportModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
         <div class="bg-themeCard w-full max-w-2xl rounded-3xl p-5 border border-themeBorder space-y-5 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center pb-3 border-b border-themeBorder">
@@ -470,6 +470,7 @@
                 </button>
             </div>
 
+            <!-- Tabs inside Summary Report -->
             <div class="grid grid-cols-2 gap-2 bg-themeSub p-1 rounded-2xl text-center">
                 <button onclick="switchSummarySubTab('month')" id="btnSumSubMonth" class="py-2 rounded-xl text-xs font-semibold bg-amber-600 text-white transition">1. เดือน (รายรับ-รายจ่าย)</button>
                 <button onclick="switchSummarySubTab('tax')" id="btnSumSubTax" class="py-2 rounded-xl text-xs font-semibold text-themeMuted transition">2. ประมาณการภาษี (ภ.ง.ด.90/91)</button>
@@ -762,7 +763,7 @@
         </div>
     </div>
 
-    <!-- Day Details Modal -->
+    <!-- Day Details Modal (For Calendar Cell Click) -->
     <div id="dayDetailsModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
         <div class="bg-themeCard w-full max-w-md rounded-3xl p-5 border border-themeBorder space-y-4 max-h-[80vh] overflow-y-auto">
             <div class="flex justify-between items-center pb-2 border-b border-themeBorder">
@@ -950,7 +951,7 @@
             if (googleAccessToken) syncFromGoogleDrive(true);
         });
 
-        async function refreshAppDataFromDrive() {
+        function refreshAppDataFromDrive() {
             if (!googleAccessToken) {
                 alert('กรุณาเชื่อมต่อ Google Drive ก่อนใช้งานปุ่มรีเฟรช');
                 return;
@@ -1639,6 +1640,11 @@
             }
         }
 
+        function initChart() {
+            renderCategoryChart();
+            renderAnnualBarChart();
+        }
+
         function renderAnnualBarChart() {
             const yearSelect = document.getElementById('annualBarYearSelect');
             if (!yearSelect) return;
@@ -1814,15 +1820,53 @@
                     `;
                 }
             }
+
+            const monthExpenses = Array(12).fill(0);
+            transactions.forEach(t => {
+                if (t.type === 'expense' && t.date) {
+                    const [y, m] = t.date.split('-').map(Number);
+                    if (y === parseInt(selY) && m >= 1 && m <= 12) {
+                        monthExpenses[m - 1] += t.amount;
+                    }
+                }
+            });
+
+            const canvas = document.getElementById('sumMonthTrendChart');
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                if (sumMonthTrendChartObj) sumMonthTrendChartObj.destroy();
+                sumMonthTrendChartObj = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'],
+                        datasets: [{
+                            label: 'รายจ่าย',
+                            data: monthExpenses,
+                            borderColor: '#d97706',
+                            backgroundColor: 'rgba(217, 119, 6, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
         }
 
         function calculateTaxReport() {
-            const taxYear = document.getElementById('taxYearSelect').value;
+            const taxYearSel = document.getElementById('taxYearSelect');
+            const targetYear = taxYearSel ? taxYearSel.value : '2026';
+
             let totalInc = 0;
             let totalExp = 0;
 
             transactions.forEach(t => {
-                if (t.date && t.date.startsWith(taxYear)) {
+                if (t.date && t.date.startsWith(targetYear)) {
                     if (t.type === 'income') totalInc += t.amount;
                     else if (t.type === 'expense') totalExp += t.amount;
                 }
@@ -1831,113 +1875,110 @@
             document.getElementById('taxTotalIncome').innerText = `฿${totalInc.toLocaleString()}`;
             document.getElementById('taxTotalExpense').innerText = `฿${totalExp.toLocaleString()}`;
 
-            const p = parseFloat(document.getElementById('deductPersonal').value) || 0;
-            const s = parseFloat(document.getElementById('deductSocial').value) || 0;
-            const prov = parseFloat(document.getElementById('deductProvident').value) || 0;
-            const ins = parseFloat(document.getElementById('deductInsurance').value) || 0;
-            const oth = parseFloat(document.getElementById('deductOther').value) || 0;
+            let dPersonal = parseFloat(document.getElementById('deductPersonal').value) || 0;
+            let dSocial = parseFloat(document.getElementById('deductSocial').value) || 0;
+            let dProvident = parseFloat(document.getElementById('deductProvident').value) || 0;
+            let dInsurance = parseFloat(document.getElementById('deductInsurance').value) || 0;
+            let dOther = parseFloat(document.getElementById('deductOther').value) || 0;
 
-            const totalDeduction = p + s + prov + ins + oth;
+            let totalDeduction = dPersonal + dSocial + dProvident + dInsurance + dOther;
             document.getElementById('taxTotalDeductionText').innerText = `รวม ฿${totalDeduction.toLocaleString()}`;
 
             let expenseAllowance = Math.min(totalInc * 0.5, 100000);
             let netIncome = Math.max(0, totalInc - expenseAllowance - totalDeduction);
             document.getElementById('resNetIncome').innerText = `฿${netIncome.toLocaleString()}`;
 
-            let calcTax = 0;
+            let calculatedTax = 0;
             let bracketText = '0% (0 - 150,000 ยกเว้น)';
             let maxRate = 0;
 
             if (netIncome > 5000000) {
-                calcTax += (netIncome - 5000000) * 0.35;
-                calcTax += (5000000 - 2000000) * 0.30;
-                calcTax += (2000000 - 1000000) * 0.25;
-                calcTax += (1000000 - 750000) * 0.20;
-                calcTax += (750000 - 500000) * 0.15;
-                calcTax += (500000 - 300000) * 0.10;
-                bracketText = '35% (มากกว่า 5,000,000)';
+                calculatedTax += (netIncome - 5000000) * 0.35;
+                netIncome = 5000000;
                 maxRate = 35;
-            } else if (netIncome > 2000000) {
-                calcTax += (netIncome - 2000000) * 0.30;
-                calcTax += (2000000 - 1000000) * 0.25;
-                calcTax += (1000000 - 750000) * 0.20;
-                calcTax += (750000 - 500000) * 0.15;
-                calcTax += (500000 - 300000) * 0.10;
+                bracketText = '35% (> 5,000,000)';
+            }
+            if (netIncome > 2000000 && netIncome <= 5000000) {
+                calculatedTax += (netIncome - 2000000) * 0.30;
+                netIncome = 2000000;
+                if (maxRate === 0) maxRate = 30;
                 bracketText = '30% (2,000,001 - 5,000,000)';
-                maxRate = 30;
-            } else if (netIncome > 1000000) {
-                calcTax += (netIncome - 1000000) * 0.25;
-                calcTax += (1000000 - 750000) * 0.20;
-                calcTax += (750000 - 500000) * 0.15;
-                calcTax += (500000 - 300000) * 0.10;
+            }
+            if (netIncome > 1000000 && netIncome <= 2000000) {
+                calculatedTax += (netIncome - 1000000) * 0.25;
+                netIncome = 1000000;
+                if (maxRate === 0) maxRate = 25;
                 bracketText = '25% (1,000,001 - 2,000,000)';
-                maxRate = 25;
-            } else if (netIncome > 750000) {
-                calcTax += (netIncome - 750000) * 0.20;
-                calcTax += (750000 - 500000) * 0.15;
-                calcTax += (500000 - 300000) * 0.10;
+            }
+            if (netIncome > 750000 && netIncome <= 1000000) {
+                calculatedTax += (netIncome - 750000) * 0.20;
+                netIncome = 750000;
+                if (maxRate === 0) maxRate = 20;
                 bracketText = '20% (750,001 - 1,000,000)';
-                maxRate = 20;
-            } else if (netIncome > 500000) {
-                calcTax += (netIncome - 500000) * 0.15;
-                calcTax += (500000 - 300000) * 0.10;
+            }
+            if (netIncome > 500000 && netIncome <= 750000) {
+                calculatedTax += (netIncome - 500000) * 0.15;
+                netIncome = 500000;
+                if (maxRate === 0) maxRate = 15;
                 bracketText = '15% (500,001 - 750,000)';
-                maxRate = 15;
-            } else if (netIncome > 300000) {
-                calcTax += (netIncome - 300000) * 0.10;
+            }
+            if (netIncome > 300000 && netIncome <= 500000) {
+                calculatedTax += (netIncome - 300000) * 0.10;
+                netIncome = 300000;
+                if (maxRate === 0) maxRate = 10;
                 bracketText = '10% (300,001 - 500,000)';
-                maxRate = 10;
-            } else if (netIncome > 150000) {
-                calcTax += (netIncome - 150000) * 0.05;
+            }
+            if (netIncome > 150000 && netIncome <= 300000) {
+                calculatedTax += (netIncome - 150000) * 0.05;
+                if (maxRate === 0) maxRate = 5;
                 bracketText = '5% (150,001 - 300,000)';
-                maxRate = 5;
             }
 
             document.getElementById('resTaxBracket').innerText = bracketText;
-            let avgRate = totalInc > 0 ? (calcTax / totalInc) * 100 : 0;
-            document.getElementById('resAvgTaxRate').innerText = `${avgRate.toFixed(1)}%`;
+            let avgRate = totalInc > 0 ? (calculatedTax / totalInc) * 100 : 0;
+            document.getElementById('resAvgTaxRate').innerText = `${avgRate.toFixed(2)}%`;
 
-            const withheld = parseFloat(document.getElementById('taxWithheld').value) || 0;
-            let diff = calcTax - withheld;
+            let taxWithheld = parseFloat(document.getElementById('taxWithheld').value) || 0;
+            let finalTaxDiff = calculatedTax - taxWithheld;
 
-            const payOrRefundEl = document.getElementById('resTaxPayOrRefund');
-            const labelEl = document.getElementById('resTaxPayOrRefundLabel');
+            let payRefundLabel = document.getElementById('resTaxPayOrRefundLabel');
+            let payRefundVal = document.getElementById('resTaxPayOrRefund');
 
-            if (diff >= 0) {
-                labelEl.innerText = 'ภาษีที่ต้องจ่ายเพิ่ม';
-                payOrRefundEl.innerText = `฿${diff.toLocaleString()}`;
-                payOrRefundEl.className = 'font-bold text-rose-500';
+            if (finalTaxDiff >= 0) {
+                payRefundLabel.innerText = 'ภาษีที่ต้องชำระเพิ่มสุทธิ';
+                payRefundVal.innerText = `฿${finalTaxDiff.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                payRefundVal.className = 'font-bold text-rose-500';
             } else {
-                labelEl.innerText = 'ภาษีที่ได้รับคืน';
-                payOrRefundEl.innerText = `฿${Math.abs(diff).toLocaleString()}`;
-                payOrRefundEl.className = 'font-bold text-emerald-600';
+                payRefundLabel.innerText = 'ภาษีที่ได้รับคืนสุทธิ';
+                payRefundVal.innerText = `฿${Math.abs(finalTaxDiff).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                payRefundVal.className = 'font-bold text-emerald-600';
             }
 
             document.getElementById('taxPositionStatus').innerText = `สูงสุด ${maxRate}%`;
-            document.getElementById('taxBracketProgressBar').style.width = `${Math.min(100, (netIncome / 5000000) * 100)}%`;
-            document.getElementById('taxNextStepAdvice').innerText = maxRate > 15 ? 'คำแนะนำ: คุณอยู่ในฐานภาษีสูง ควรพิจารณาซื้อ SSF/RMF หรือประกันเพดานสูงสุดเพื่อลดหย่อนภาษี' : 'คำแนะนำ: ฐานภาษีอยู่ในเกณฑ์ปกติ สามารถบริหารการลงทุนเพิ่มเติมได้ตามความเหมาะสม';
+            document.getElementById('taxBracketProgressBar').style.width = `${(maxRate / 35) * 100}%`;
+            document.getElementById('taxNextStepAdvice',).innerText = maxRate > 0 ? 'คุณสามารถวางแผนลดหย่อยเพิ่มเติมด้วย SSF/RMF หรือประกันเพื่อลดภาระภาษีได้' : 'รายได้ของคุณอยู่ในเกณฑ์ได้รับการยกเว้นภาษี';
         }
 
-        function setExportFormat(fmt) {
-            currentExportFormat = fmt;
-            const bXlsx = document.getElementById('btnFormatXlsx');
-            const bCsv = document.getElementById('btnFormatCsv');
-            const bPdf = document.getElementById('btnFormatPdf');
-            const subBtn = document.getElementById('exportSubmitBtn');
+        function setExportFormat(format) {
+            currentExportFormat = format;
+            const btnX = document.getElementById('btnFormatXlsx');
+            const btnC = document.getElementById('btnFormatCsv');
+            const btnP = document.getElementById('btnFormatPdf');
+            const submitBtn = document.getElementById('exportSubmitBtn');
 
-            bXlsx.className = 'py-2 rounded-xl text-xs font-semibold text-themeMuted transition';
-            bCsv.className = 'py-2 rounded-xl text-xs font-semibold text-themeMuted transition';
-            bPdf.className = 'py-2 rounded-xl text-xs font-semibold text-themeMuted transition';
+            btnX.className = 'py-2 rounded-xl text-xs font-semibold text-themeMuted transition';
+            btnC.className = 'py-2 rounded-xl text-xs font-semibold text-themeMuted transition';
+            btnP.className = 'py-2 rounded-xl text-xs font-semibold text-themeMuted transition';
 
-            if (fmt === 'xlsx') {
-                bXlsx.className = 'py-2 rounded-xl text-xs font-semibold bg-amber-500 text-amber-950 shadow-sm transition';
-                subBtn.innerText = 'ส่งออก Excel';
-            } else if (fmt === 'csv') {
-                bCsv.className = 'py-2 rounded-xl text-xs font-semibold bg-amber-500 text-amber-950 shadow-sm transition';
-                subBtn.innerText = 'ส่งออก CSV';
-            } else if (fmt === 'pdf') {
-                bPdf.className = 'py-2 rounded-xl text-xs font-semibold bg-amber-500 text-amber-950 shadow-sm transition';
-                subBtn.innerText = 'ส่งออก PDF';
+            if (format === 'xlsx') {
+                btnX.className = 'py-2 rounded-xl text-xs font-semibold bg-amber-500 text-amber-950 shadow-sm transition';
+                submitBtn.innerText = 'ส่งออก Excel';
+            } else if (format === 'csv') {
+                btnC.className = 'py-2 rounded-xl text-xs font-semibold bg-amber-500 text-amber-950 shadow-sm transition';
+                submitBtn.innerText = 'ส่งออก CSV';
+            } else {
+                btnP.className = 'py-2 rounded-xl text-xs font-semibold bg-amber-500 text-amber-950 shadow-sm transition';
+                submitBtn.innerText = 'ส่งออก PDF';
             }
             updateExportPreview();
         }
@@ -1946,68 +1987,127 @@
             const picker = document.getElementById('exportMonthPicker');
             if (!picker || !picker.value) return;
             const [y, m] = picker.value.split('-');
-            const filtered = transactions.filter(t => t.date && t.date.startsWith(`${y}-${m}`));
 
+            const filtered = transactions.filter(t => t.date && t.date.startsWith(`${y}-${m}`));
             document.getElementById('exportTotalCount').innerText = `${filtered.length} รายการ`;
             document.getElementById('exportDateRange').innerText = `${m}/${y}`;
-            let expTotal = filtered.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-            document.getElementById('exportTotalExpense').innerText = `฿${expTotal.toLocaleString()}`;
+
+            let totalExp = 0;
+            filtered.forEach(t => {
+                if (t.type === 'expense') totalExp += t.amount;
+            });
+            document.getElementById('exportTotalExpense').innerText = `฿${totalExp.toLocaleString()}`;
 
             const tbody = document.getElementById('exportPreviewTableBody');
             if (tbody) {
                 tbody.innerHTML = '';
-                filtered.slice(0, 3).forEach((t, i) => {
-                    tbody.innerHTML += `
-                        <tr>
-                            <td class="p-1.5">${i + 1}</td>
-                            <td class="p-1.5">${t.note || '-'}</td>
-                            <td class="p-1.5">${t.category}</td>
-                            <td class="p-1.5">${t.type}</td>
-                            <td class="p-1.5">฿${t.amount.toLocaleString()}</td>
-                            <td class="p-1.5">${t.date}</td>
-                        </tr>
-                    `;
-                });
-                if (filtered.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="6" class="p-2 text-center text-themeMuted">ไม่มีรายการในเดือนนี้</td></tr>`;
+                const previewItems = filtered.slice(0, 3);
+                if (previewItems.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="p-2 text-center text-themeMuted">ไม่มีข้อมูลในเดือนที่เลือก</td></tr>`;
+                } else {
+                    previewItems.forEach((t, idx) => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td class="p-1.5">${idx + 1}</td>
+                                <td class="p-1.5">${t.note || '-'}</td>
+                                <td class="p-1.5">${t.category}</td>
+                                <td class="p-1.5">${t.type === 'income' ? 'รายรับ' : 'รายจ่าย'}</td>
+                                <td class="p-1.5 font-bold ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-500'}">฿${t.amount.toLocaleString()}</td>
+                                <td class="p-1.5">${t.date}</td>
+                            </tr>
+                        `;
+                    });
                 }
             }
         }
 
-        // ==========================================
-        // EXPORT FUNCTIONS (EXCEL, CSV, PDF)
-        // ==========================================
         function execExport() {
-            if (currentExportFormat === 'csv') {
+            if (currentExportFormat === 'xlsx') {
+                exportExcelCustom();
+            } else if (currentExportFormat === 'csv') {
                 exportCSV();
-                return;
-            }
-            if (currentExportFormat === 'pdf') {
+            } else {
                 exportPDF();
-                return;
             }
+        }
 
-            // Excel Export (ตามรูปแบบใหม่ที่กำหนด)
+        // ==========================================
+        // FIXED EXPORT EXCEL FUNCTION (ตาม Requirement ใหม่ทั้งหมด)
+        // ==========================================
+        function exportExcelCustom() {
             const picker = document.getElementById('exportMonthPicker');
             if (!picker || !picker.value) {
-                alert('กรุณาเลือกเดือน/ปีสำหรับการส่งออก');
+                alert('กรุณาเลือกเดือน/ปีสำหรับการส่งออก Excel');
                 return;
             }
             const [yearStr, monthStr] = picker.value.split('-');
             const year = parseInt(yearStr);
             const month = parseInt(monthStr);
 
-            const thaiMonths = ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-            const monthName = thaiMonths[month];
+            const thaiMonths = [
+                "", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", 
+                "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+            ];
+            const monthNameThai = thaiMonths[month];
+
+            // 1. รวมยอด transaction แยกตามวันและ category (mapping)
+            // โครงสร้าง mapping หมวดหมู่ตามสั่ง:
+            // "อาหารและเครื่องดื่ม" -> "อาหาร/เครื่องดื่ม"
+            // "การเดินทาง" -> "การเดินทาง"
+            // "ช้อปปิ้ง" -> "ช้อปปิ้ง"
+            // "บิล & ค่าน้ำไฟ" -> "บิล & ค่าน้ำค่าไฟ"
+            // "ความบันเทิง" -> "ความบันเทิง"
+            // "เงินเดือน/รายรับ" -> "เงินเดือน/รายรับ"
+            // "อื่นๆ" -> "อื่นๆ"
+            const dailyData = {};
             const totalDays = new Date(year, month, 0).getDate();
 
-            let aoa = [];
-            // Header Title
-            aoa.push([`เดือน ${monthName} ${year}`]);
-            aoa.push([]); // Empty row
+            for (let d = 1; d <= totalDays; d++) {
+                const dStr = String(d).padStart(2, '0');
+                const mStr = String(month).padStart(2, '0');
+                const dateKey = `${d}/${month}/${year}`; // Format: 20/8/2026 (หรือ 1/8/2026)
+                // เพื่อให้ตรงกับวันที่ในระบบ (YYYY-MM-DD)
+                const fullDateCode = `${year}-${mStr}-${dStr}`;
+                
+                dailyData[fullDateCode] = {
+                    dateFormatted: `${d}/${month}/${year}`,
+                    'เงินเดือน/รายรับ': 0,
+                    'อาหาร/เครื่องดื่ม': 0,
+                    'การเดินทาง': 0,
+                    'ช้อปปิ้ง': 0,
+                    'บิล & ค่าน้ำค่าไฟ': 0,
+                    'ความบันเทิง': 0,
+                    'อื่นๆ': 0
+                };
+            }
 
-            // Column Headers
-            const headers = [
+            transactions.forEach(t => {
+                if (t.date && t.date.startsWith(`${yearStr}-${monthStr}`)) {
+                    if (dailyData[t.date]) {
+                        let amount = parseFloat(t.amount) || 0;
+                        let cat = t.category;
+
+                        if (t.type === 'income' || cat === 'เงินเดือน/รายรับ') {
+                            dailyData[t.date]['เงินเดือน/รายรับ'] += amount;
+                        } else {
+                            if (cat === 'อาหารและเครื่องดื่ม') dailyData[t.date]['อาหาร/เครื่องดื่ม'] += amount;
+                            else if (cat === 'การเดินทาง') dailyData[t.date]['การเดินทาง'] += amount;
+                            else if (cat === 'ช้อปปิ้ง') dailyData[t.date]['ช้อปปิ้ง'] += amount;
+                            else if (cat === 'บิล & ค่าน้ำไฟ') dailyData[t.date]['บิล & ค่าน้ำค่าไฟ'] += amount;
+                            else if (cat === 'ความบันเทิง') dailyData[t.date]['ความบันเทิง'] += amount;
+                            else dailyData[t.date]['อื่นๆ'] += amount;
+                        }
+                    }
+                }
+            });
+
+            // สร้าง Array สำหรับ SheetJS
+            const wsData = [];
+
+            // Row 1: ชื่อเดือนและปี
+            wsData.push([`เดือน ${monthNameThai} ${year}`, "", "", "", "", "", "", ""]);
+            // Row 2: Header Columns
+            wsData.push([
                 "วันที่", 
                 "เงินเดือน/รายรับ", 
                 "อาหาร/เครื่องดื่ม", 
@@ -2016,168 +2116,189 @@
                 "บิล & ค่าน้ำค่าไฟ", 
                 "ความบันเทิง", 
                 "อื่นๆ"
-            ];
-            aoa.push(headers);
-
-            let sumIncomeAll = 0;
-            let sumFoodAll = 0;
-            let sumTransportAll = 0;
-            let sumShoppingAll = 0;
-            let sumBillsAll = 0;
-            let sumEntAll = 0;
-            let sumOtherAll = 0;
-
-            for (let d = 1; d <= totalDays; d++) {
-                const dateStrFormatted = `${d}/${month}/${year}`;
-                const dateStrStorage = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-
-                let inc = 0;
-                let food = 0;
-                let transport = 0;
-                let shopping = 0;
-                let bills = 0;
-                let ent = 0;
-                let other = 0;
-
-                transactions.forEach(t => {
-                    if (t.date === dateStrStorage) {
-                        if (t.type === 'income' || t.category === 'เงินเดือน/รายรับ') {
-                            inc += t.amount;
-                        } else if (t.type === 'expense') {
-                            if (t.category === 'อาหารและเครื่องดื่ม') food += t.amount;
-                            else if (t.category === 'การเดินทาง') transport += t.amount;
-                            else if (t.category === 'ช้อปปิ้ง') shopping += t.amount;
-                            else if (t.category === 'บิล & ค่าน้ำไฟ') bills += t.amount;
-                            else if (t.category === 'ความบันเทิง') ent += t.amount;
-                            else other += t.amount;
-                        }
-                    }
-                });
-
-                sumIncomeAll += inc;
-                sumFoodAll += food;
-                sumTransportAll += transport;
-                sumShoppingAll += shopping;
-                sumBillsAll += bills;
-                sumEntAll += ent;
-                sumOtherAll += other;
-
-                aoa.push([
-                    dateStrFormatted,
-                    inc > 0 ? inc : '-',
-                    food > 0 ? food : '-',
-                    transport > 0 ? transport : '-',
-                    shopping > 0 ? shopping : '-',
-                    bills > 0 ? bills : '-',
-                    ent > 0 ? ent : '-',
-                    other > 0 ? other : '-'
-                ]);
-            }
-
-            // Summary Row
-            aoa.push([
-                'Summary',
-                sumIncomeAll > 0 ? sumIncomeAll : 0,
-                sumFoodAll > 0 ? sumFoodAll : 0,
-                sumTransportAll > 0 ? sumTransportAll : 0,
-                sumShoppingAll > 0 ? sumShoppingAll : 0,
-                sumBillsAll > 0 ? sumBillsAll : 0,
-                sumEntAll > 0 ? sumEntAll : 0,
-                sumOtherAll > 0 ? sumOtherAll : 0
             ]);
 
-            const totalExpenseAll = sumFoodAll + sumTransportAll + sumShoppingAll + sumBillsAll + sumEntAll + sumOtherAll;
-            const netBalance = sumIncomeAll - totalExpenseAll;
+            let sumIncome = 0;
+            let sumFood = 0;
+            let sumTravel = 0;
+            let sumShopping = 0;
+            let sumBill = 0;
+            let sumEntertain = 0;
+            let sumOther = 0;
 
-            aoa.push([]);
-            aoa.push(['Summary รายรับทั้งหมด', sumIncomeAll]);
-            aoa.push(['Summary รายจ่ายทั้งหมด', totalExpenseAll]);
-            aoa.push(['คงเหลือ', netBalance]);
+            const rowStyles = []; // เก็บตำแหน่ง cell ที่ต้องลงสี
 
-            const ws = XLSX.utils.aoa_to_sheet(aoa);
+            let rowIndex = 2; // นับต่อจาก header (0-based หรือ 1-based index ใน worksheet)
 
+            Object.keys(dailyData).sort().forEach(dateCode => {
+                rowIndex++;
+                const item = dailyData[dateCode];
+                
+                const incVal = item['เงินเดือน/รายรับ'];
+                const foodVal = item['อาหาร/เครื่องดื่ม'];
+                const travelVal = item['การเดินทาง'];
+                const shopVal = item['ช้อปปิ้ง'];
+                const billVal = item['บิล & ค่าน้ำค่าไฟ'];
+                const entVal = item['ความบันเทิง'];
+                const othVal = item['อื่นๆ'];
+
+                sumIncome += incVal;
+                sumFood += foodVal;
+                sumTravel += travelVal;
+                sumShopping += shopVal;
+                sumBill += billVal;
+                sumEntertain += entVal;
+                sumOther += othVal;
+
+                wsData.push([
+                    item.dateFormatted,
+                    incVal > 0 ? incVal : "-",
+                    foodVal > 0 ? foodVal : "-",
+                    travelVal > 0 ? travelVal : "-",
+                    shopVal > 0 ? shopVal : "-",
+                    billVal > 0 ? billVal : "-",
+                    entVal > 0 ? entVal : "-",
+                    othVal > 0 ? othVal : "-"
+                ]);
+            });
+
+            // Summary Row ประจำเดือน
+            rowIndex++;
+            wsData.push([
+                "Summary",
+                sumIncome,
+                sumFood,
+                sumTravel,
+                sumShopping,
+                sumBill,
+                sumEntertain,
+                sumOther
+            ]);
+
+            // สร้าง Workbook และ Worksheet
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+            // จัดความกว้าง Column
             ws['!cols'] = [
-                { wch: 12 },
-                { wch: 18 },
-                { wch: 16 },
-                { wch: 14 },
-                { wch: 14 },
-                { wch: 18 },
-                { wch: 14 },
-                { wch: 12 }
+                { wch: 14 }, // วันที่
+                { wch: 18 }, // เงินเดือน/รายรับ
+                { wch: 18 }, // อาหาร/เครื่องดื่ม
+                { wch: 15 }, // การเดินทาง
+                { wch: 15 }, // ช้อปปิ้ง
+                { wch: 18 }, // บิล & ค่าน้ำค่าไฟ
+                { wch: 15 }, // ความบันเทิง
+                { wch: 15 }  // อื่นๆ
             ];
 
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, `${monthName} ${year}`);
-            XLSX.writeFile(wb, `MoneyPod_${year}_${month}.xlsx`);
+            // วนลูปกำหนดสี Cell ตามเงื่อนไขที่กำหนด
+            // Header อยู่ที่แถว index 1 (Row 2)
+            // ข้อมูลเริ่มตั้งแต่แถว index 2 ถึง rowIndex - 1
+            for (let r = 2; r <= rowIndex - 1; r++) {
+                // Column A (0) = วันที่
+                // Column B (1) = เงินเดือน/รายรับ (รายรับ -> เขียว, ถ้าไม่มี -> เทา)
+                // Column C-H (2-7) = รายจ่าย (รายจ่าย -> แดง/ชมพูอ่อน, ถ้าไม่มี -> เทา)
+                
+                // ตรวจสอบแต่ละ column ของแถวนี้
+                for (let c = 1; c <= 7; c++) {
+                    const cellRef = XLSX.utils.encode_cell({ r: r, c: c });
+                    if (!ws[cellRef]) continue;
+                    const val = ws[cellRef].v;
+
+                    if (val === "-" || val === 0) {
+                        ws[cellRef].v = "-";
+                        ws[cellRef].s = {
+                            fill: { fgColor: { rgb: "E0E0E0" } }, // สีเทา
+                            font: { color: { rgb: "808080" } }
+                        };
+                    } else {
+                        if (c === 1) {
+                            // รายรับ -> เขียวอ่อน / ตัวอักษรเขียวเข้ม
+                            ws[cellRef].s = {
+                                fill: { fgColor: { rgb: "D1E7DD" } },
+                                font: { color: { rgb: "0F5132" }, bold: true }
+                            };
+                            ws[cellRef].z = '#,##0';
+                        } else {
+                            // รายจ่าย -> แดงอ่อน / ตัวอักษรแดงเข้ม
+                            ws[cellRef].s = {
+                                fill: { fgColor: { rgb: "F8D7DA" } },
+                                font: { color: { rgb: "842029" }, bold: true }
+                            };
+                            ws[cellRef].z = '#,##0';
+                        }
+                    }
+                }
+            }
+
+            // จัดแต่งแถว Summary (แถวสุดท้าย rowIndex)
+            for (let c = 0; c <= 7; c++) {
+                const cellRef = XLSX.utils.encode_cell({ r: rowIndex, c: c });
+                if (!ws[cellRef]) ws[cellRef] = { v: c === 0 ? "Summary" : 0 };
+                ws[cellRef].s = {
+                    fill: { fgColor: { rgb: "FFF3CD" } }, // สีเหลืองอ่อน
+                    font: { color: { rgb: "664D03" }, bold: true }
+                };
+                if (c > 0) ws[cellRef].z = '#,##0';
+            }
+
+            // 9. เพิ่ม Summary รายรับทั้งหมด / รายจ่ายทั้งหมด / คงเหลือ ด้านล่างสุด
+            const totalExpenseSum = sumFood + sumTravel + sumShopping + sumBill + sumEntertain + sumOther;
+            const netBalanceSum = sumIncome - totalExpenseSum;
+
+            const summaryBottomStartRow = rowIndex + 2;
+            ws[XLSX.utils.encode_cell({ r: summaryBottomStartRow, c: 0 })] = { v: "Summary รายรับทั้งหมด", s: { font: { bold: true } } };
+            ws[XLSX.utils.encode_cell({ r: summaryBottomStartRow, c: 1 })] = { v: sumIncome, z: '#,##0', s: { font: { bold: true, color: { rgb: "0F5132" } } } };
+
+            ws[XLSX.utils.encode_cell({ r: summaryBottomStartRow + 1, c: 0 })] = { v: "Summary รายจ่ายทั้งหมด", s: { font: { bold: true } } };
+            ws[XLSX.utils.encode_cell({ r: summaryBottomStartRow + 1, c: 1 })] = { v: totalExpenseSum, z: '#,##0', s: { font: { bold: true, color: { rgb: "842029" } } } };
+
+            ws[XLSX.utils.encode_cell({ r: summaryBottomStartRow + 2, c: 0 })] = { v: "คงเหลือ", s: { font: { bold: true } } };
+            ws[XLSX.utils.encode_cell({ r: summaryBottomStartRow + 2, c: 1 })] = { v: netBalanceSum, z: '#,##0', s: { font: { bold: true, color: { rgb: "0D6EFD" } } } };
+
+            XLSX.utils.book_append_sheet(wb, ws, "MonthlyReport");
+            XLSX.writeFile(wb, `MoneyPod_Report_${yearStr}_${monthStr}.xlsx`);
             closeModal('exportModal');
         }
 
         function exportCSV() {
-            const picker = document.getElementById('exportMonthPicker');
-            if (!picker || !picker.value) return;
-            const [y, m] = picker.value.split('-');
-            const filtered = transactions.filter(t => t.date && t.date.startsWith(`${y}-${m}`));
-
-            let csvContent = "\uFEFFลำดับ,ชื่อรายการ,หมวดหมู่,ประเภท,จำนวน,วันที่\n";
-            filtered.forEach((t, i) => {
-                csvContent += `${i + 1},"${t.note || '-'}","${t.category}","${t.type}",${t.amount},"${t.date}"\n`;
+            let csv = 'ลำดับ,ชื่อรายการ,หมวดหมู่,ประเภท,จำนวน,วันที่\n';
+            transactions.forEach((t, i) => {
+                csv += `${i+1},"${t.note || '-'}","${t.category}",${t.type},${t.amount},${t.date}\n`;
             });
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `MoneyPod_CSV_${y}_${m}.csv`;
+            a.download = `MoneyPod_Transactions_${new Date().toISOString().slice(0, 10)}.csv`;
             a.click();
             URL.revokeObjectURL(url);
             closeModal('exportModal');
         }
 
         function exportPDF() {
-            const picker = document.getElementById('exportMonthPicker');
-            if (!picker || !picker.value) return;
-            const [y, m] = picker.value.split('-');
-            const filtered = transactions.filter(t => t.date && t.date.startsWith(`${y}-${m}`));
-
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            doc.text(`MoneyPod Report - ${y}/${m}`, 14, 20);
-
-            const tableData = filtered.map((t, i) => [
-                i + 1,
+            doc.text("MoneyPod Cute - Transactions Report", 14, 20);
+            
+            const tableData = transactions.map((t, idx) => [
+                idx + 1,
                 t.note || '-',
                 t.category,
-                t.type,
+                t.type === 'income' ? 'รายรับ' : 'รายจ่าย',
                 t.amount.toLocaleString(),
                 t.date
             ]);
 
             doc.autoTable({
-                head: [['No.', 'Note', 'Category', 'Type', 'Amount', 'Date']],
+                startY: 30,
+                head: [['ลำดับ', 'ชื่อรายการ', 'หมวดหมู่', 'ประเภท', 'จำนวน (บาท)', 'วันที่']],
                 body: tableData,
-                startY: 25
+                styles: { font: 'helvetica', fontSize: 10 }
             });
 
-            doc.save(`MoneyPod_PDF_${y}_${m}.pdf`);
+            doc.save(`MoneyPod_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
             closeModal('exportModal');
-        }
-
-        function switchBackupTab(tab) {
-            const bBtn = document.getElementById('btnTabBackup');
-            const rBtn = document.getElementById('btnTabRestore');
-            const bCont = document.getElementById('backupTabContent');
-            const rCont = document.getElementById('restoreTabContent');
-            if (tab === 'backup') {
-                bBtn.className = 'py-2 rounded-xl text-xs font-semibold bg-amber-600 text-white transition z-10';
-                rBtn.className = 'py-2 rounded-xl text-xs font-semibold text-themeMuted transition z-10';
-                bCont.classList.remove('hidden');
-                rCont.classList.add('hidden');
-            } else {
-                rBtn.className = 'py-2 rounded-xl text-xs font-semibold bg-amber-600 text-white transition z-10';
-                bBtn.className = 'py-2 rounded-xl text-xs font-semibold text-themeMuted transition z-10';
-                rCont.classList.remove('hidden');
-                bCont.classList.add('hidden');
-            }
         }
 
         function importJSON(event) {
@@ -2196,10 +2317,29 @@
                     alert('กู้คืนข้อมูลสำเร็จ!');
                     closeModal('backupRestoreModal');
                 } catch (err) {
-                    alert('ไฟล์ JSON ไม่ถูกต้อง');
+                    alert('ไฟล์ไม่ถูกต้องหรือมีความเสียหาย');
                 }
             };
             reader.readAsText(file);
+        }
+
+        function switchBackupTab(tab) {
+            const btnB = document.getElementById('btnTabBackup');
+            const btnR = document.getElementById('btnTabRestore');
+            const contentB = document.getElementById('backupTabContent');
+            const contentR = document.getElementById('restoreTabContent');
+
+            if (tab === 'backup') {
+                btnB.className = 'py-2 rounded-xl text-xs font-semibold bg-amber-600 text-white transition z-10';
+                btnR.className = 'py-2 rounded-xl text-xs font-semibold text-themeMuted transition z-10';
+                contentB.classList.remove('hidden');
+                contentR.classList.add('hidden');
+            } else {
+                btnR.className = 'py-2 rounded-xl text-xs font-semibold bg-amber-600 text-white transition z-10';
+                btnB.className = 'py-2 rounded-xl text-xs font-semibold text-themeMuted transition z-10';
+                contentR.classList.remove('hidden');
+                contentB.classList.add('hidden');
+            }
         }
     </script>
 </body>
