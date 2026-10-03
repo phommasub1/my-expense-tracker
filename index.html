@@ -908,16 +908,21 @@
         let isPrivacy = false;
         let currentTxType = 'expense';
         let currentExportFormat = 'xlsx';
+        let isRestoringFromGoogleDrive = false;
 
-        let wallets = JSON.parse(localStorage.getItem('MP_WALLETS')) || [
+        let wallets = [
             { id: 'w1', name: 'เงินสด', balance: 2500, icon: 'fa-money-bill-wave' },
             { id: 'w2', name: 'กสิกรไทย', balance: 18500, icon: 'fa-building-columns' }
         ];
 
-        let transactions = JSON.parse(localStorage.getItem('MP_TXS')) || [];
-        let debts = JSON.parse(localStorage.getItem('MP_DEBTS')) || [];
+        let transactions = [];
+        let debts = [];
         let categories = ['อาหารและเครื่องดื่ม', 'การเดินทาง', 'ช้อปปิ้ง', 'บิล & ค่าน้ำไฟ', 'ความบันเทิง', 'เงินเดือน/รายรับ', 'อื่นๆ'];
-        let monthlyBudget = parseFloat(localStorage.getItem('MP_BUDGET')) || 15000;
+        let monthlyBudget = 15000;
+
+        let categoryChartObj = null;
+        let annualBarChartObj = null;
+        let sumMonthTrendChartObj = null;
 
         window.addEventListener('DOMContentLoaded', () => {
             const savedTheme = localStorage.getItem('MP_THEME') || 'default';
@@ -942,6 +947,7 @@
                 expPicker.value = new Date().toISOString().slice(0, 7);
             }
 
+            initAnnualBarChartYears();
             updateGoogleAuthUI();
             loadAllData();
             initGoogleOAuth();
@@ -1042,24 +1048,27 @@
                 const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${fileName}' and trashed=false`, { 
                     headers: { Authorization: `Bearer ${googleAccessToken}` } 
                 });
+                if (!searchRes.ok) throw new Error(`Google Drive API error: ${searchRes.status}`);
                 const searchData = await searchRes.json();
                 let fileId = searchData.files && searchData.files.length > 0 ? searchData.files[0].id : null;
                 if (fileId) {
-                    await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, { 
+                    const updateRes = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, { 
                         method: 'PATCH', 
                         headers: { Authorization: `Bearer ${googleAccessToken}`, 'Content-Type': 'application/json' }, 
                         body: fileContent 
                     });
+                    if (!updateRes.ok) throw new Error(`Google Drive API error: ${updateRes.status}`);
                 } else {
                     const metadata = { name: fileName, mimeType: 'application/json' };
                     const form = new FormData();
                     form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
                     form.append('file', new Blob([fileContent], { type: 'application/json' }));
-                    await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', { 
+                    const createRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', { 
                         method: 'POST', 
                         headers: { Authorization: `Bearer ${googleAccessToken}` }, 
                         body: form 
                     });
+                    if (!createRes.ok) throw new Error(`Google Drive API error: ${createRes.status}`);
                 }
                 if (!silent) alert('สำรองข้อมูลไปยัง Google Drive สำเร็จ!');
             } catch (err) { 
@@ -1073,20 +1082,26 @@
                 return; 
             }
             try {
-                const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='MoneyPod_AutoBackup.json' and trashed=false`, { 
+                isRestoringFromGoogleDrive = true;
+                const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='MoneyPod_AutoBackup.json' and trashed=false&orderBy=modifiedTime desc`, { 
                     headers: { Authorization: `Bearer ${googleAccessToken}` } 
                 });
+                if (!searchRes.ok) throw new Error(`Google Drive API error: ${searchRes.status}`);
                 const searchData = await searchRes.json();
                 if (searchData.files && searchData.files.length > 0) {
                     const fileId = searchData.files[0].id;
                     const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, { 
                         headers: { Authorization: `Bearer ${googleAccessToken}` } 
                     });
+                    if (!fileRes.ok) throw new Error(`Google Drive API error: ${fileRes.status}`);
                     const driveData = await fileRes.json();
-                    if (driveData.wallets) localStorage.setItem('MP_WALLETS', JSON.stringify(driveData.wallets));
-                    if (driveData.transactions) localStorage.setItem('MP_TXS', JSON.stringify(driveData.transactions));
-                    if (driveData.debts) localStorage.setItem('MP_DEBTS', JSON.stringify(driveData.debts));
-                    if (driveData.monthlyBudget) localStorage.setItem('MP_BUDGET', driveData.monthlyBudget);
+                    
+                    if (driveData.wallets !== undefined) localStorage.setItem('MP_WALLETS', JSON.stringify(driveData.wallets));
+                    if (driveData.transactions !== undefined) localStorage.setItem('MP_TXS', JSON.stringify(driveData.transactions));
+                    if (driveData.debts !== undefined) localStorage.setItem('MP_DEBTS', JSON.stringify(driveData.debts));
+                    if (driveData.monthlyBudget !== undefined) localStorage.setItem('MP_BUDGET', driveData.monthlyBudget);
+                    if (driveData.pin !== undefined) localStorage.setItem('MP_PIN', driveData.pin);
+                    
                     loadAllData();
                     if (!silent) alert('ดึงข้อมูลจาก Google Drive สำเร็จ!');
                 } else {
@@ -1094,6 +1109,8 @@
                 }
             } catch (err) {
                 if (!silent) alert('เกิดข้อผิดพลาดในการดึงข้อมูลจาก Google Drive');
+            } finally {
+                isRestoringFromGoogleDrive = false;
             }
         }
 
@@ -1186,15 +1203,44 @@
         }
 
         function loadAllData() {
-            wallets = JSON.parse(localStorage.getItem('MP_WALLETS')) || wallets;
-            transactions = JSON.parse(localStorage.getItem('MP_TXS')) || transactions;
-            debts = JSON.parse(localStorage.getItem('MP_DEBTS')) || debts;
-            monthlyBudget = parseFloat(localStorage.getItem('MP_BUDGET')) || 15000;
+            const savedWallets = localStorage.getItem('MP_WALLETS');
+            if (savedWallets !== null) {
+                wallets = JSON.parse(savedWallets);
+            }
+            const savedTxs = localStorage.getItem('MP_TXS');
+            if (savedTxs !== null) {
+                transactions = JSON.parse(savedTxs);
+            }
+            const savedDebts = localStorage.getItem('MP_DEBTS');
+            if (savedDebts !== null) {
+                debts = JSON.parse(savedDebts);
+            }
+            const savedBudget = localStorage.getItem('MP_BUDGET');
+            if (savedBudget !== null) {
+                monthlyBudget = parseFloat(savedBudget);
+            }
+            const savedPin = localStorage.getItem('MP_PIN');
+            if (savedPin !== null) {
+                pin = savedPin;
+            }
 
             renderDashboard();
             renderWalletsTab();
             renderDebts();
             populateSelects();
+        }
+
+        function saveLocalAndAutoSync() {
+            localStorage.setItem('MP_WALLETS', JSON.stringify(wallets));
+            localStorage.setItem('MP_TXS', JSON.stringify(transactions));
+            localStorage.setItem('MP_DEBTS', JSON.stringify(debts));
+            localStorage.setItem('MP_BUDGET', monthlyBudget);
+            localStorage.setItem('MP_PIN', pin);
+
+            loadAllData();
+            if (googleAccessToken && !isRestoringFromGoogleDrive) {
+                backupToGoogleDrive(true);
+            }
         }
 
         function renderDashboard() {
@@ -1235,9 +1281,14 @@
                 `;
             });
 
+            renderRecentTransactions();
+        }
+
+        function renderRecentTransactions() {
             let recentList = document.getElementById('recentTxList');
+            if (!recentList) return;
             recentList.innerHTML = '';
-            let sortedTxs = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+            let sortedTxs = transactions.slice().reverse().slice(0, 10);
             document.getElementById('txCountText').innerText = `${transactions.length} รายการ`;
 
             if (sortedTxs.length === 0) {
@@ -1263,8 +1314,17 @@
             }
         }
 
+        function renderWalletCarousel() {
+            renderDashboard();
+        }
+
+        function renderWallets() {
+            renderWalletsTab();
+        }
+
         function renderWalletsTab() {
             let grid = document.getElementById('fullWalletGrid');
+            if (!grid) return;
             grid.innerHTML = '';
             wallets.forEach(w => {
                 grid.innerHTML += `
@@ -1285,6 +1345,7 @@
 
         function renderDebts() {
             let list = document.getElementById('debtList');
+            if (!list) return;
             list.innerHTML = '';
             if (debts.length === 0) {
                 list.innerHTML = `<p class="text-xs text-themeMuted text-center py-4">ยังไม่มีรายการยืม-คืน</p>`;
@@ -1336,14 +1397,38 @@
             };
 
             transactions.push(newTx);
-            localStorage.setItem('MP_TXS', JSON.stringify(transactions));
-            localStorage.setItem('MP_WALLETS', JSON.stringify(wallets));
+            saveLocalAndAutoSync();
 
             closeModal('addTxModal');
             document.getElementById('txAmount').value = '';
             document.getElementById('txNote').value = '';
-            loadAllData();
-            if (googleAccessToken) backupToGoogleDrive(true);
+        }
+
+        function editTransaction(id) {
+            let t = transactions.find(item => item.id === id);
+            if (!t) return;
+            document.getElementById('editTxId').value = t.id;
+            document.getElementById('txAmount').value = t.amount;
+            document.getElementById('txWalletSelect').value = t.walletId;
+            document.getElementById('txCategorySelect').value = t.category;
+            document.getElementById('txDate').value = t.date;
+            document.getElementById('txNote').value = t.note || '';
+            setTxType(t.type);
+            openModal('addTxModal');
+        }
+
+        function deleteTransaction(id) {
+            let idx = transactions.findIndex(item => item.id === id);
+            if (idx !== -1) {
+                let t = transactions[idx];
+                let wallet = wallets.find(w => w.id === t.walletId);
+                if (wallet) {
+                    if (t.type === 'expense') wallet.balance += t.amount;
+                    else wallet.balance -= t.amount;
+                }
+                transactions.splice(idx, 1);
+                saveLocalAndAutoSync();
+            }
         }
 
         function saveNewWallet() {
@@ -1354,11 +1439,10 @@
                 return;
             }
             wallets.push({ id: 'w_' + Date.now(), name: name, balance: balance, icon: 'fa-wallet' });
-            localStorage.setItem('MP_WALLETS', JSON.stringify(wallets));
+            saveLocalAndAutoSync();
             closeModal('addWalletModal');
             document.getElementById('newWalletName').value = '';
             document.getElementById('newWalletBalance').value = '';
-            loadAllData();
         }
 
         function saveNewDebt() {
@@ -1370,15 +1454,14 @@
                 return;
             }
             debts.push({ id: 'd_' + Date.now(), type, person, amount });
-            localStorage.setItem('MP_DEBTS', JSON.stringify(debts));
+            saveLocalAndAutoSync();
             closeModal('addDebtModal');
             document.getElementById('debtPerson').value = '';
             document.getElementById('debtAmount').value = '';
-            loadAllData();
         }
 
         // ==========================================
-        // 1. Calendar Income & Expense Rendering
+        // CALENDAR & CHARTS (BUG #1)
         // ==========================================
         function renderCalendar() {
             const picker = document.getElementById('calendarMonthPicker');
@@ -1422,6 +1505,8 @@
                     </div>
                 `;
             }
+            renderAnnualBarChart();
+            renderCategoryChart();
         }
 
         function showDayDetails(dateStr) {
@@ -1452,16 +1537,129 @@
             openModal('dayDetailsModal');
         }
 
+        function initAnnualBarChartYears() {
+            const select = document.getElementById('annualBarYearSelect');
+            if (!select) return;
+            const currentYear = new Date().getFullYear();
+            select.innerHTML = '';
+            for (let y = currentYear - 2; y <= currentYear + 2; y++) {
+                select.innerHTML += `<option value="${y}" ${y === currentYear ? 'selected' : ''}>ปี ${y}</option>`;
+            }
+        }
+
+        function initChart() {
+            renderCategoryChart();
+            renderAnnualBarChart();
+        }
+
         function renderAnnualBarChart() {
-            // Placeholder for annual bar chart logic
+            const yearSelect = document.getElementById('annualBarYearSelect');
+            if (!yearSelect) return;
+            const targetYear = parseInt(yearSelect.value) || new Date().getFullYear();
+
+            const monthlyExpenses = Array(12).fill(0);
+            transactions.forEach(t => {
+                if (t.type === 'expense' && t.date) {
+                    const [y, m] = t.date.split('-').map(Number);
+                    if (y === targetYear && m >= 1 && m <= 12) {
+                        monthlyExpenses[m - 1] += t.amount;
+                    }
+                }
+            });
+
+            const canvas = document.getElementById('annualBarChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+
+            if (annualBarChartObj) {
+                annualBarChartObj.destroy();
+            }
+
+            annualBarChartObj = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'],
+                    datasets: [{
+                        label: 'รายจ่าย (บาท)',
+                        data: monthlyExpenses,
+                        backgroundColor: 'rgba(255, 85, 85, 0.6)',
+                        borderColor: 'rgb(255, 85, 85)',
+                        borderWidth: 1,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(200,200,200,0.1)' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
         }
 
         function renderCategoryChart() {
-            // Placeholder for category chart logic
+            const picker = document.getElementById('calendarMonthPicker');
+            const selVal = picker && picker.value ? picker.value : new Date().toISOString().slice(0, 7);
+            const [selY, selM] = selVal.split('-');
+
+            const catTotals = {};
+            categories.forEach(c => {
+                if (c !== 'เงินเดือน/รายรับ') catTotals[c] = 0;
+            });
+
+            transactions.forEach(t => {
+                if (t.type === 'expense' && t.date && t.date.startsWith(`${selY}-${selM}`)) {
+                    let cat = t.category;
+                    if (catTotals[cat] !== undefined) {
+                        catTotals[cat] += t.amount;
+                    } else {
+                        catTotals['อื่นๆ'] = (catTotals['อื่นๆ'] || 0) + t.amount;
+                    }
+                }
+            });
+
+            const labels = Object.keys(catTotals);
+            const dataVals = Object.values(catTotals);
+
+            const canvas = document.getElementById('categoryChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+
+            if (categoryChartObj) {
+                categoryChartObj.destroy();
+            }
+
+            categoryChartObj = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: dataVals,
+                        backgroundColor: [
+                            '#ff5555', '#ffb86c', '#f1fa8c', '#50fa7b', '#8be9fd', '#bd93f9', '#ff79c6'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
+                    }
+                }
+            });
         }
 
+        // ==========================================
+        // SUMMARY REPORT & TAX (BUG #2)
+        // ==========================================
         function openSummaryReportModal() {
             openModal('summaryReportModal');
+            renderSummaryMonthView();
         }
 
         function switchSummarySubTab(sub) {
@@ -1474,6 +1672,7 @@
                 btnT.className = 'py-2 rounded-xl text-xs font-semibold text-themeMuted transition';
                 tabM.classList.remove('hidden');
                 tabT.classList.add('hidden');
+                renderSummaryMonthView();
             } else {
                 btnT.className = 'py-2 rounded-xl text-xs font-semibold bg-amber-600 text-white transition';
                 btnM.className = 'py-2 rounded-xl text-xs font-semibold text-themeMuted transition';
@@ -1484,11 +1683,197 @@
         }
 
         function renderSummaryMonthView() {
-            // Placeholder
+            const picker = document.getElementById('sumReportMonthPicker');
+            if (!picker || !picker.value) return;
+            const [selY, selM] = picker.value.split('-');
+
+            let monthInc = 0;
+            let monthExp = 0;
+
+            transactions.forEach(t => {
+                if (t.date && t.date.startsWith(`${selY}-${selM}`)) {
+                    if (t.type === 'income') monthInc += t.amount;
+                    else if (t.type === 'expense') monthExp += t.amount;
+                }
+            });
+
+            let net = monthInc - monthExp;
+            document.getElementById('sumNetMonth').innerText = `฿${net.toLocaleString()}`;
+
+            const totalDays = new Date(parseInt(selY), parseInt(selM), 0).getDate();
+            let dailyAvg = monthExp / totalDays;
+            document.getElementById('sumDailyAvgExpense').innerText = `฿${dailyAvg.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+            // Render monthly table for the year
+            const tableBody = document.getElementById('sumMonthTableBody');
+            if (tableBody) {
+                tableBody.innerHTML = '';
+                const monthNames = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+                
+                for (let m = 1; m <= 12; m++) {
+                    const mStr = String(m).padStart(2, '0');
+                    let mInc = 0;
+                    let mExp = 0;
+                    transactions.forEach(t => {
+                        if (t.date && t.date.startsWith(`${selY}-${mStr}`)) {
+                            if (t.type === 'income') mInc += t.amount;
+                            else if (t.type === 'expense') mExp += t.amount;
+                        }
+                    });
+                    let mNet = mInc - mExp;
+                    tableBody.innerHTML += `
+                        <tr class="hover:bg-themeSub/30">
+                            <td class="p-2">${monthNames[m-1]}</td>
+                            <td class="p-2 text-emerald-600">+฿${mInc.toLocaleString()}</td>
+                            <td class="p-2 text-rose-500">-฿${mExp.toLocaleString()}</td>
+                            <td class="p-2 font-bold ${mNet >= 0 ? 'text-emerald-600' : 'text-rose-500'}">฿${mNet.toLocaleString()}</td>
+                        </tr>
+                    `;
+                }
+            }
+
+            // Trend Chart
+            const monthExpenses = Array(12).fill(0);
+            transactions.forEach(t => {
+                if (t.type === 'expense' && t.date) {
+                    const [y, m] = t.date.split('-').map(Number);
+                    if (y === parseInt(selY) && m >= 1 && m <= 12) {
+                        monthExpenses[m - 1] += t.amount;
+                    }
+                }
+            });
+
+            const canvas = document.getElementById('sumMonthTrendChart');
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                if (sumMonthTrendChartObj) sumMonthTrendChartObj.destroy();
+                sumMonthTrendChartObj = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'],
+                        datasets: [{
+                            label: 'รายจ่าย',
+                            data: monthExpenses,
+                            borderColor: '#d97706',
+                            backgroundColor: 'rgba(217, 119, 6, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
         }
 
         function calculateTaxReport() {
-            // Placeholder
+            const taxYearSel = document.getElementById('taxYearSelect');
+            const targetYear = taxYearSel ? taxYearSel.value : '2026';
+
+            let totalInc = 0;
+            let totalExp = 0;
+
+            transactions.forEach(t => {
+                if (t.date && t.date.startsWith(targetYear)) {
+                    if (t.type === 'income') totalInc += t.amount;
+                    else if (t.type === 'expense') totalExp += t.amount;
+                }
+            });
+
+            document.getElementById('taxTotalIncome').innerText = `฿${totalInc.toLocaleString()}`;
+            document.getElementById('taxTotalExpense').innerText = `฿${totalExp.toLocaleString()}`;
+
+            const pDeduct = parseFloat(document.getElementById('deductPersonal').value) || 0;
+            const sDeduct = parseFloat(document.getElementById('deductSocial').value) || 0;
+            const provDeduct = parseFloat(document.getElementById('deductProvident').value) || 0;
+            const insDeduct = parseFloat(document.getElementById('deductInsurance').value) || 0;
+            const oDeduct = parseFloat(document.getElementById('deductOther').value) || 0;
+            const withheld = parseFloat(document.getElementById('taxWithheld').value) || 0;
+
+            const totalDeductions = pDeduct + sDeduct + provDeduct + insDeduct + oDeduct;
+            document.getElementById('taxTotalDeductionText').innerText = `รวม ฿${totalDeductions.toLocaleString()}`;
+
+            // Expense deduction (standard 50% max 100,000 for income type 40(2)-(8) or simplify)
+            let standardExpense = Math.min(totalInc * 0.5, 100000);
+            let netIncome = Math.max(0, totalInc - standardExpense - totalDeductions);
+
+            document.getElementById('resNetIncome').innerText = `฿${netIncome.toLocaleString()}`;
+
+            // Progressive Tax Calculation
+            let calculatedTax = 0;
+            let bracketStr = '0% (0 - 150,000 ยกเว้น)';
+            let maxBracketRate = 0;
+
+            if (netIncome > 5000000) {
+                calculatedTax += (netIncome - 5000000) * 0.35;
+                calculatedTax += (5000000 - 2000000) * 0.30;
+                calculatedTax += (2000000 - 1000000) * 0.25;
+                calculatedTax += (1000000 - 750000) * 0.20;
+                calculatedTax += (750000 - 500000) * 0.15;
+                calculatedTax += (500000 - 300000) * 0.10;
+                bracketStr = '35% (มากกว่า 5,000,000)';
+                maxBracketRate = 35;
+            } else if (netIncome > 2000000) {
+                calculatedTax += (netIncome - 2000000) * 0.30;
+                calculatedTax += (2000000 - 1000000) * 0.25;
+                calculatedTax += (1000000 - 750000) * 0.20;
+                calculatedTax += (750000 - 500000) * 0.15;
+                calculatedTax += (500000 - 300000) * 0.10;
+                bracketStr = '30% (2,000,001 - 5,000,000)';
+                maxBracketRate = 30;
+            } else if (netIncome > 1000000) {
+                calculatedTax += (netIncome - 1000000) * 0.25;
+                calculatedTax += (1000000 - 750000) * 0.20;
+                calculatedTax += (750000 - 500000) * 0.15;
+                calculatedTax += (500000 - 300000) * 0.10;
+                bracketStr = '25% (1,000,001 - 2,000,000)';
+                maxBracketRate = 25;
+            } else if (netIncome > 750000) {
+                calculatedTax += (netIncome - 750000) * 0.20;
+                calculatedTax += (750000 - 500000) * 0.15;
+                calculatedTax += (500000 - 300000) * 0.10;
+                bracketStr = '20% (750,001 - 1,000,000)';
+                maxBracketRate = 20;
+            } else if (netIncome > 500000) {
+                calculatedTax += (netIncome - 500000) * 0.15;
+                calculatedTax += (500000 - 300000) * 0.10;
+                bracketStr = '15% (500,001 - 750,000)';
+                maxBracketRate = 15;
+            } else if (netIncome > 300000) {
+                calculatedTax += (netIncome - 300000) * 0.10;
+                bracketStr = '10% (300,001 - 500,000)';
+                maxBracketRate = 10;
+            } else if (netIncome > 150000) {
+                calculatedTax += (netIncome - 150000) * 0.05;
+                bracketStr = '5% (150,001 - 300,000)';
+                maxBracketRate = 5;
+            }
+
+            let avgRate = totalInc > 0 ? (calculatedTax / totalInc) * 100 : 0;
+            document.getElementById('resAvgTaxRate').innerText = `${avgRate.toFixed(2)}%`;
+            document.getElementById('resTaxBracket').innerText = bracketStr;
+
+            let finalTaxDue = calculatedTax - withheld;
+            let payRefundEl = document.getElementById('resTaxPayOrRefund');
+            let payRefundLabel = document.getElementById('resTaxPayOrRefundLabel');
+
+            if (finalTaxDue >= 0) {
+                payRefundLabel.innerText = 'ภาษีที่ต้องชำระเพิ่ม';
+                payRefundEl.innerText = `฿${finalTaxDue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                payRefundEl.className = 'font-bold text-rose-500';
+            } else {
+                payRefundLabel.innerText = 'ภาษีที่ได้รับคืน';
+                payRefundEl.innerText = `฿${Math.abs(finalTaxDue).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                payRefundEl.className = 'font-bold text-emerald-600';
+            }
+
+            document.getElementById('taxPositionStatus').innerText = `ขั้นสูงสุด ${maxBracketRate}%`;
+            document.getElementById('taxBracketProgressBar').style.width = `${Math.min(100, (netIncome / 5000000) * 100)}%`;
+            document.getElementById('taxNextStepAdvice',).innerText = netIncome <= 150000 ? 'เงินได้สุทธิอยู่ในเกณฑ์ได้รับการยกเว้นภาษี' : 'สามารถซื้อกองทุน SSF/RMF เพิ่มเติมเพื่อลดหย่อนภาษีได้';
         }
 
         function switchBackupTab(tab) {
@@ -1516,15 +1901,20 @@
             reader.onload = function(evt) {
                 try {
                     const data = JSON.parse(evt.target.result);
-                    if (data.wallets) localStorage.setItem('MP_WALLETS', JSON.stringify(data.wallets));
-                    if (data.transactions) localStorage.setItem('MP_TXS', JSON.stringify(data.transactions));
-                    if (data.debts) localStorage.setItem('MP_DEBTS', JSON.stringify(data.debts));
-                    if (data.monthlyBudget) localStorage.setItem('MP_BUDGET', data.monthlyBudget);
+                    isRestoringFromGoogleDrive = true;
+                    if (data.wallets !== undefined) localStorage.setItem('MP_WALLETS', JSON.stringify(data.wallets));
+                    if (data.transactions !== undefined) localStorage.setItem('MP_TXS', JSON.stringify(data.transactions));
+                    if (data.debts !== undefined) localStorage.setItem('MP_DEBTS', JSON.stringify(data.debts));
+                    if (data.monthlyBudget !== undefined) localStorage.setItem('MP_BUDGET', data.monthlyBudget);
+                    if (data.pin !== undefined) localStorage.setItem('MP_PIN', data.pin);
+                    
                     loadAllData();
                     alert('กู้คืนข้อมูลสำเร็จ!');
                     closeModal('backupRestoreModal');
                 } catch (err) {
                     alert('ไฟล์ไม่ถูกต้อง');
+                } finally {
+                    isRestoringFromGoogleDrive = false;
                 }
             };
             reader.readAsText(file);
@@ -1611,9 +2001,6 @@
             }
         }
 
-        // ==========================================
-        // 3. & 4. & 5. & 6. & 7. & 8. & 9. & 10. & 11. & 12. & 13. Excel Export Custom Logic
-        // ==========================================
         function exportExcelCustom() {
             const picker = document.getElementById('exportMonthPicker');
             if (!picker || !picker.value) {
@@ -1630,16 +2017,6 @@
 
             const monthTxs = getTransactionsBySelectedMonth();
 
-            // Mapping categories to columns
-            // Column A = วันที่
-            // Column B = เงินเดือน/รายรับ
-            // Column C = อาหาร/เครื่องดื่ม
-            // Column D = การเดินทาง
-            // Column E = ช้อปปิ้ง
-            // Column F = บิล & ค่าน้ำค่าไฟ
-            // Column G = ความบันเทิง
-            // Column H = อื่นๆ
-
             const catMapping = {
                 "เงินเดือน/รายรับ": "เงินเดือน/รายรับ",
                 "อาหารและเครื่องดื่ม": "อาหาร/เครื่องดื่ม",
@@ -1653,9 +2030,7 @@
             const totalDays = new Date(year, month, 0).getDate();
             const rowsData = [];
 
-            // Title Row
             rowsData.push([monthTitleStr, "", "", "", "", "", "", ""]);
-            // Header Row
             rowsData.push(["วันที่", "เงินเดือน/รายรับ", "อาหาร/เครื่องดื่ม", "การเดินทาง", "ช้อปปิ้ง", "บิล & ค่าน้ำค่าไฟ", "ความบันเทิง", "อื่นๆ"]);
 
             const sums = {
@@ -1705,7 +2080,6 @@
                 ]);
             }
 
-            // Summary Row
             rowsData.push([
                 "Summary",
                 sums["เงินเดือน/รายรับ"],
@@ -1726,8 +2100,6 @@
             rowsData.push(["คงเหลือ", netBalance, "", "", "", "", "", ""]);
 
             const ws = XLSX.utils.aoa_to_sheet(rowsData);
-
-            // Styling and Column Widths
             ws['!cols'] = [
                 {wch: 15}, {wch: 18}, {wch: 18}, {wch: 15}, {wch: 15}, {wch: 20}, {wch: 15}, {wch: 15}
             ];
@@ -1738,15 +2110,16 @@
         }
 
         function exportCSV() {
-            let csv = 'ID,Type,Amount,Wallet,Category,Date,Note\n';
-            transactions.forEach(t => {
-                csv += `"${t.id}","${t.type}",${t.amount},"${t.walletId}","${t.category}","${t.date}","${t.note || ''}"\n`;
+            const monthTxs = getTransactionsBySelectedMonth();
+            let csv = '\uFEFFID,Type,Amount,Category,WalletId,Date,Note\n';
+            monthTxs.forEach(t => {
+                csv += `"${t.id}","${t.type}",${t.amount},"${t.category}","${t.walletId}","${t.date}","${t.note || ''}"\n`;
             });
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `MoneyPod_Transactions_${new Date().toISOString().slice(0, 10)}.csv`;
+            a.download = `MoneyPod_Export.csv`;
             a.click();
             URL.revokeObjectURL(url);
         }
@@ -1754,23 +2127,17 @@
         function exportPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            doc.text("MoneyPod Cute - Transactions Report", 14, 20);
+            const monthTxs = getTransactionsBySelectedMonth();
             
-            const tableData = transactions.map((t, idx) => [
-                idx + 1,
-                t.note || '-',
-                t.category,
-                t.type,
-                t.amount,
-                t.date
-            ]);
-
+            doc.text("MoneyPod Cute - Transaction Report", 14, 20);
+            const tableData = monthTxs.map((t, idx) => [idx + 1, t.date, t.category, t.type, t.amount, t.note || '-']);
+            
             doc.autoTable({
-                head: [['#', 'Note', 'Category', 'Type', 'Amount', 'Date']],
+                startY: 25,
+                head: [['#', 'Date', 'Category', 'Type', 'Amount', 'Note']],
                 body: tableData,
-                startY: 30
             });
-            doc.save(`MoneyPod_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
+            doc.save('MoneyPod_Report.pdf');
         }
     </script>
 </body>
