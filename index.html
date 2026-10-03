@@ -455,7 +455,7 @@
     </nav>
 
     <!-- MODALS SECTION -->
-    <!-- Summary Report Modal (NEW) -->
+    <!-- Summary Report Modal -->
     <div id="summaryReportModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
         <div class="bg-themeCard w-full max-w-2xl rounded-3xl p-5 border border-themeBorder space-y-5 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center pb-3 border-b border-themeBorder">
@@ -766,7 +766,7 @@
         </div>
     </div>
 
-    <!-- Day Details Modal (For Calendar Cell Click) -->
+    <!-- Day Details Modal -->
     <div id="dayDetailsModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
         <div class="bg-themeCard w-full max-w-md rounded-3xl p-5 border border-themeBorder space-y-4 max-h-[80vh] overflow-y-auto">
             <div class="flex justify-between items-center pb-2 border-b border-themeBorder">
@@ -797,11 +797,9 @@
                 <button onclick="switchBackupTab('restore')" id="btnTabRestore" class="py-2 rounded-xl text-xs font-semibold text-themeMuted transition z-10">กู้คืนข้อมูล</button>
             </div>
             <div id="backupTabContent" class="space-y-3">
-                <!-- 1. Save file locally -->
                 <button onclick="downloadLocalBackup()" class="w-full py-3 rounded-2xl bg-themeSub border border-themeBorder text-amber-600 text-xs font-bold hover:bg-amber-500/10 transition flex items-center justify-center gap-2 shadow-sm">
                     <i class="fa-solid fa-download"></i> ดาวน์โหลดไฟล์สำรองเก็บไว้ในเครื่อง (.json)
                 </button>
-                <!-- 2. Save file to Google Drive -->
                 <button onclick="backupToGoogleDrive(false)" class="w-full py-3 rounded-2xl bg-amber-600 text-white text-xs font-bold hover:opacity-95 transition flex items-center justify-center gap-2 shadow-sm">
                     <i class="fa-brands fa-google"></i> สำรองข้อมูลขึ้น Google Drive
                 </button>
@@ -843,7 +841,7 @@
             </div>
             
             <div class="space-y-2 bg-themeSub/50 p-3 rounded-2xl">
-                <label class="text-[11px] text-themeMuted block font-semibold">เลือกเดือน/ปีสำหรับการส่งออก Excel</label>
+                <label class="text-[11px] text-themeMuted block font-semibold">เลือกเดือน/ปีสำหรับการส่งออกข้อมูล</label>
                 <input type="month" id="exportMonthPicker" onchange="updateExportPreview()" class="w-full bg-themeCard border border-themeBorder rounded-xl px-3 py-2 text-xs text-amber-600 focus:outline-none font-semibold">
             </div>
 
@@ -1314,14 +1312,6 @@
             }
         }
 
-        function renderWalletCarousel() {
-            renderDashboard();
-        }
-
-        function renderWallets() {
-            renderWalletsTab();
-        }
-
         function renderWalletsTab() {
             let grid = document.getElementById('fullWalletGrid');
             if (!grid) return;
@@ -1404,33 +1394,6 @@
             document.getElementById('txNote').value = '';
         }
 
-        function editTransaction(id) {
-            let t = transactions.find(item => item.id === id);
-            if (!t) return;
-            document.getElementById('editTxId').value = t.id;
-            document.getElementById('txAmount').value = t.amount;
-            document.getElementById('txWalletSelect').value = t.walletId;
-            document.getElementById('txCategorySelect').value = t.category;
-            document.getElementById('txDate').value = t.date;
-            document.getElementById('txNote').value = t.note || '';
-            setTxType(t.type);
-            openModal('addTxModal');
-        }
-
-        function deleteTransaction(id) {
-            let idx = transactions.findIndex(item => item.id === id);
-            if (idx !== -1) {
-                let t = transactions[idx];
-                let wallet = wallets.find(w => w.id === t.walletId);
-                if (wallet) {
-                    if (t.type === 'expense') wallet.balance += t.amount;
-                    else wallet.balance -= t.amount;
-                }
-                transactions.splice(idx, 1);
-                saveLocalAndAutoSync();
-            }
-        }
-
         function saveNewWallet() {
             let name = document.getElementById('newWalletName').value;
             let balance = parseFloat(document.getElementById('newWalletBalance').value) || 0;
@@ -1460,9 +1423,6 @@
             document.getElementById('debtAmount').value = '';
         }
 
-        // ==========================================
-        // CALENDAR & CHARTS (BUG #1)
-        // ==========================================
         function renderCalendar() {
             const picker = document.getElementById('calendarMonthPicker');
             if (!picker || !picker.value) return;
@@ -1545,11 +1505,6 @@
             for (let y = currentYear - 2; y <= currentYear + 2; y++) {
                 select.innerHTML += `<option value="${y}" ${y === currentYear ? 'selected' : ''}>ปี ${y}</option>`;
             }
-        }
-
-        function initChart() {
-            renderCategoryChart();
-            renderAnnualBarChart();
         }
 
         function renderAnnualBarChart() {
@@ -1654,9 +1609,6 @@
             });
         }
 
-        // ==========================================
-        // SUMMARY REPORT & TAX (BUG #2)
-        // ==========================================
         function openSummaryReportModal() {
             openModal('summaryReportModal');
             renderSummaryMonthView();
@@ -1704,7 +1656,6 @@
             let dailyAvg = monthExp / totalDays;
             document.getElementById('sumDailyAvgExpense').innerText = `฿${dailyAvg.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
-            // Render monthly table for the year
             const tableBody = document.getElementById('sumMonthTableBody');
             if (tableBody) {
                 tableBody.innerHTML = '';
@@ -1732,7 +1683,6 @@
                 }
             }
 
-            // Trend Chart
             const monthExpenses = Array(12).fill(0);
             transactions.forEach(t => {
                 if (t.type === 'expense' && t.date) {
@@ -1797,13 +1747,11 @@
             const totalDeductions = pDeduct + sDeduct + provDeduct + insDeduct + oDeduct;
             document.getElementById('taxTotalDeductionText').innerText = `รวม ฿${totalDeductions.toLocaleString()}`;
 
-            // Expense deduction (standard 50% max 100,000 for income type 40(2)-(8) or simplify)
             let standardExpense = Math.min(totalInc * 0.5, 100000);
             let netIncome = Math.max(0, totalInc - standardExpense - totalDeductions);
 
             document.getElementById('resNetIncome').innerText = `฿${netIncome.toLocaleString()}`;
 
-            // Progressive Tax Calculation
             let calculatedTax = 0;
             let bracketStr = '0% (0 - 150,000 ยกเว้น)';
             let maxBracketRate = 0;
@@ -1812,9 +1760,10 @@
                 calculatedTax += (netIncome - 5000000) * 0.35;
                 calculatedTax += (5000000 - 2000000) * 0.30;
                 calculatedTax += (2000000 - 1000000) * 0.25;
-                calculatedTax += (1000000 - 750000) * 0.20;
-                calculatedTax += (750000 - 500000) * 0.15;
+                calculatedTax += (1000000 - 750050) * 0.20;
+                calculatedTax += (750050 - 500000) * 0.15;
                 calculatedTax += (500000 - 300000) * 0.10;
+                calculatedTax += (300000 - 150000) * 0.05;
                 bracketStr = '35% (มากกว่า 5,000,000)';
                 maxBracketRate = 35;
             } else if (netIncome > 2000000) {
@@ -1823,6 +1772,7 @@
                 calculatedTax += (1000000 - 750000) * 0.20;
                 calculatedTax += (750000 - 500000) * 0.15;
                 calculatedTax += (500000 - 300000) * 0.10;
+                calculatedTax += (300000 - 150000) * 0.05;
                 bracketStr = '30% (2,000,001 - 5,000,000)';
                 maxBracketRate = 30;
             } else if (netIncome > 1000000) {
@@ -1830,21 +1780,25 @@
                 calculatedTax += (1000000 - 750000) * 0.20;
                 calculatedTax += (750000 - 500000) * 0.15;
                 calculatedTax += (500000 - 300000) * 0.10;
+                calculatedTax += (300000 - 150000) * 0.05;
                 bracketStr = '25% (1,000,001 - 2,000,000)';
                 maxBracketRate = 25;
             } else if (netIncome > 750000) {
                 calculatedTax += (netIncome - 750000) * 0.20;
                 calculatedTax += (750000 - 500000) * 0.15;
                 calculatedTax += (500000 - 300000) * 0.10;
+                calculatedTax += (300000 - 150000) * 0.05;
                 bracketStr = '20% (750,001 - 1,000,000)';
                 maxBracketRate = 20;
             } else if (netIncome > 500000) {
                 calculatedTax += (netIncome - 500000) * 0.15;
                 calculatedTax += (500000 - 300000) * 0.10;
+                calculatedTax += (300000 - 150000) * 0.05;
                 bracketStr = '15% (500,001 - 750,000)';
                 maxBracketRate = 15;
             } else if (netIncome > 300000) {
                 calculatedTax += (netIncome - 300000) * 0.10;
+                calculatedTax += (300000 - 150000) * 0.05;
                 bracketStr = '10% (300,001 - 500,000)';
                 maxBracketRate = 10;
             } else if (netIncome > 150000) {
@@ -1873,7 +1827,7 @@
 
             document.getElementById('taxPositionStatus').innerText = `ขั้นสูงสุด ${maxBracketRate}%`;
             document.getElementById('taxBracketProgressBar').style.width = `${Math.min(100, (netIncome / 5000000) * 100)}%`;
-            document.getElementById('taxNextStepAdvice',).innerText = netIncome <= 150000 ? 'เงินได้สุทธิอยู่ในเกณฑ์ได้รับการยกเว้นภาษี' : 'สามารถซื้อกองทุน SSF/RMF เพิ่มเติมเพื่อลดหย่อนภาษีได้';
+            document.getElementById('taxNextStepAdvice').innerText = netIncome <= 150000 ? 'เงินได้สุทธิอยู่ในเกณฑ์ได้รับการยกเว้นภาษี' : 'สามารถซื้อกองทุน SSF/RMF เพิ่มเติมเพื่อลดหย่อนภาษีได้';
         }
 
         function switchBackupTab(tab) {
@@ -1901,20 +1855,16 @@
             reader.onload = function(evt) {
                 try {
                     const data = JSON.parse(evt.target.result);
-                    isRestoringFromGoogleDrive = true;
-                    if (data.wallets !== undefined) localStorage.setItem('MP_WALLETS', JSON.stringify(data.wallets));
-                    if (data.transactions !== undefined) localStorage.setItem('MP_TXS', JSON.stringify(data.transactions));
-                    if (data.debts !== undefined) localStorage.setItem('MP_DEBTS', JSON.stringify(data.debts));
-                    if (data.monthlyBudget !== undefined) localStorage.setItem('MP_BUDGET', data.monthlyBudget);
-                    if (data.pin !== undefined) localStorage.setItem('MP_PIN', data.pin);
-                    
+                    if (data.wallets) localStorage.setItem('MP_WALLETS', JSON.stringify(data.wallets));
+                    if (data.transactions) localStorage.setItem('MP_TXS', JSON.stringify(data.transactions));
+                    if (data.debts) localStorage.setItem('MP_DEBTS', JSON.stringify(data.debts));
+                    if (data.monthlyBudget) localStorage.setItem('MP_BUDGET', data.monthlyBudget);
+                    if (data.pin) localStorage.setItem('MP_PIN', data.pin);
                     loadAllData();
                     alert('กู้คืนข้อมูลสำเร็จ!');
                     closeModal('backupRestoreModal');
                 } catch (err) {
-                    alert('ไฟล์ไม่ถูกต้อง');
-                } finally {
-                    isRestoringFromGoogleDrive = false;
+                    alert('ไฟล์ JSON ไม่ถูกต้อง');
                 }
             };
             reader.readAsText(file);
@@ -1922,222 +1872,93 @@
 
         function setExportFormat(fmt) {
             currentExportFormat = fmt;
-            const bXlsx = document.getElementById('btnFormatXlsx');
-            const bCsv = document.getElementById('btnFormatCsv');
-            const bPdf = document.getElementById('btnFormatPdf');
-            
-            bXlsx.className = 'py-2 rounded-xl text-xs font-semibold text-themeMuted transition';
-            bCsv.className = 'py-2 rounded-xl text-xs font-semibold text-themeMuted transition';
-            bPdf.className = 'py-2 rounded-xl text-xs font-semibold text-themeMuted transition';
-
-            if (fmt === 'xlsx') {
-                bXlsx.className = 'py-2 rounded-xl text-xs font-semibold bg-amber-500 text-amber-950 shadow-sm transition';
-                document.getElementById('exportSubmitBtn').innerText = 'ส่งออก Excel';
-            } else if (fmt === 'csv') {
-                bCsv.className = 'py-2 rounded-xl text-xs font-semibold bg-amber-500 text-amber-950 shadow-sm transition';
-                document.getElementById('exportSubmitBtn').innerText = 'ส่งออก CSV';
-            } else {
-                bPdf.className = 'py-2 rounded-xl text-xs font-semibold bg-amber-500 text-amber-950 shadow-sm transition';
-                document.getElementById('exportSubmitBtn').innerText = 'ส่งออก PDF';
-            }
-        }
-
-        function getTransactionsBySelectedMonth() {
-            const picker = document.getElementById('exportMonthPicker');
-            if (!picker || !picker.value) return [];
-            const [selY, selM] = picker.value.split('-');
-            return transactions.filter(t => {
-                if (!t.date) return false;
-                const [y, m] = t.date.split('-');
-                return y === selY && m === selM;
-            });
+            document.getElementById('btnFormatXlsx').className = fmt === 'xlsx' ? 'py-2 rounded-xl text-xs font-semibold bg-amber-500 text-amber-950 shadow-sm transition' : 'py-2 rounded-xl text-xs font-semibold text-themeMuted transition';
+            document.getElementById('btnFormatCsv').className = fmt === 'csv' ? 'py-2 rounded-xl text-xs font-semibold bg-amber-500 text-amber-950 shadow-sm transition' : 'py-2 rounded-xl text-xs font-semibold text-themeMuted transition';
+            document.getElementById('btnFormatPdf').className = fmt === 'pdf' ? 'py-2 rounded-xl text-xs font-semibold bg-amber-500 text-amber-950 shadow-sm transition' : 'py-2 rounded-xl text-xs font-semibold text-themeMuted transition';
+            document.getElementById('exportSubmitBtn').innerText = `ส่งออก ${fmt.toUpperCase()}`;
+            updateExportPreview();
         }
 
         function updateExportPreview() {
-            const monthTxs = getTransactionsBySelectedMonth();
-            document.getElementById('exportTotalCount').innerText = `${monthTxs.length} รายการ`;
-            
             const picker = document.getElementById('exportMonthPicker');
-            if (picker && picker.value) {
-                const [y, m] = picker.value.split('-');
-                const lastDay = new Date(parseInt(y), parseInt(m), 0).getDate();
-                document.getElementById('exportDateRange').innerText = `01/${m}/${y} - ${lastDay}/${m}/${y}`;
-            } else {
-                document.getElementById('exportDateRange').innerText = '-';
-            }
+            if (!picker || !picker.value) return;
+            const [selY, selM] = picker.value.split('-');
 
-            let totalExp = monthTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+            const filtered = transactions.filter(t => t.date && t.date.startsWith(`${selY}-${selM}`));
+            document.getElementById('exportTotalCount').innerText = `${filtered.length} รายการ`;
+            document.getElementById('exportDateRange').innerText = `${selM}/${selY}`;
+
+            let totalExp = 0;
+            filtered.forEach(t => { if (t.type === 'expense') totalExp += t.amount; });
             document.getElementById('exportTotalExpense').innerText = `฿${totalExp.toLocaleString()}`;
 
             const tbody = document.getElementById('exportPreviewTableBody');
-            tbody.innerHTML = '';
-            monthTxs.slice(0, 3).forEach((t, index) => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td class="p-1.5">${index + 1}</td>
-                        <td class="p-1.5">${t.note || '-'}</td>
-                        <td class="p-1.5">${t.category}</td>
-                        <td class="p-1.5">${t.type}</td>
-                        <td class="p-1.5">฿${t.amount.toLocaleString()}</td>
-                        <td class="p-1.5">${t.date}</td>
-                    </tr>
-                `;
-            });
+            if (tbody) {
+                tbody.innerHTML = '';
+                const previewItems = filtered.slice(0, 3);
+                if (previewItems.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="p-2 text-center text-themeMuted">ไม่มีข้อมูลในเดือนนี้</td></tr>`;
+                } else {
+                    previewItems.forEach((t, index) => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td class="p-1.5">${index + 1}</td>
+                                <td class="p-1.5 truncate max-w-[80px]">${t.note || '-'}</td>
+                                <td class="p-1.5">${t.category}</td>
+                                <td class="p-1.5">${t.type === 'income' ? 'รายรับ' : 'รายจ่าย'}</td>
+                                <td class="p-1.5 font-bold">฿${t.amount.toLocaleString()}</td>
+                                <td class="p-1.5">${t.date}</td>
+                            </tr>
+                        `;
+                    });
+                }
+            }
         }
 
         function execExport() {
             const picker = document.getElementById('exportMonthPicker');
-            if (!picker || !picker.value) {
-                alert('กรุณาเลือกเดือนและปีก่อนส่งออกข้อมูล');
+            if (!picker || !picker.value) return;
+            const [selY, selM] = picker.value.split('-');
+            const filtered = transactions.filter(t => t.date && t.date.startsWith(`${selY}-${selM}`));
+
+            if (filtered.length === 0) {
+                alert('ไม่มีข้อมูลสำหรับเดือนที่เลือก');
                 return;
             }
 
-            if (currentExportFormat === 'xlsx') {
-                exportExcelCustom();
-            } else if (currentExportFormat === 'csv') {
-                exportCSV();
-            } else {
-                exportPDF();
-            }
-        }
-
-        function exportExcelCustom() {
-            const picker = document.getElementById('exportMonthPicker');
-            if (!picker || !picker.value) {
-                alert('กรุณาเลือกเดือนและปีก่อนส่งออกข้อมูล');
-                return;
-            }
-
-            const [yearStr, monthStr] = picker.value.split('-');
-            const year = parseInt(yearStr);
-            const month = parseInt(monthStr);
-
-            const monthNamesThai = ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-            const monthTitleStr = `เดือน ${monthNamesThai[month]} ${year}`;
-
-            const monthTxs = getTransactionsBySelectedMonth();
-
-            const catMapping = {
-                "เงินเดือน/รายรับ": "เงินเดือน/รายรับ",
-                "อาหารและเครื่องดื่ม": "อาหาร/เครื่องดื่ม",
-                "การเดินทาง": "การเดินทาง",
-                "ช้อปปิ้ง": "ช้อปปิ้ง",
-                "บิล & ค่าน้ำไฟ": "บิล & ค่าน้ำค่าไฟ",
-                "ความบันเทิง": "ความบันเทิง",
-                "อื่นๆ": "อื่นๆ"
-            };
-
-            const totalDays = new Date(year, month, 0).getDate();
-            const rowsData = [];
-
-            rowsData.push([monthTitleStr, "", "", "", "", "", "", ""]);
-            rowsData.push(["วันที่", "เงินเดือน/รายรับ", "อาหาร/เครื่องดื่ม", "การเดินทาง", "ช้อปปิ้ง", "บิล & ค่าน้ำค่าไฟ", "ความบันเทิง", "อื่นๆ"]);
-
-            const sums = {
-                "เงินเดือน/รายรับ": 0,
-                "อาหาร/เครื่องดื่ม": 0,
-                "การเดินทาง": 0,
-                "ช้อปปิ้ง": 0,
-                "บิล & ค่าน้ำค่าไฟ": 0,
-                "ความบันเทิง": 0,
-                "อื่นๆ": 0
-            };
-
-            for (let d = 1; d <= totalDays; d++) {
-                const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                const formattedDate = `${d}/${month}/${year}`;
-
-                const dayTxs = monthTxs.filter(t => t.date === dateKey);
-                const daySums = {
-                    "เงินเดือน/รายรับ": 0,
-                    "อาหาร/เครื่องดื่ม": 0,
-                    "การเดินทาง": 0,
-                    "ช้อปปิ้ง": 0,
-                    "บิล & ค่าน้ำค่าไฟ": 0,
-                    "ความบันเทิง": 0,
-                    "อื่นๆ": 0
-                };
-
-                dayTxs.forEach(t => {
-                    let mappedCat = catMapping[t.category] || "อื่นๆ";
-                    if (t.type === 'income') {
-                        mappedCat = "เงินเดือน/รายรับ";
-                    }
-                    daySums[mappedCat] += t.amount;
-                });
-
-                Object.keys(sums).forEach(k => sums[k] += daySums[k]);
-
-                rowsData.push([
-                    formattedDate,
-                    daySums["เงินเดือน/รายรับ"] > 0 ? daySums["เงินเดือน/รายรับ"] : "-",
-                    daySums["อาหาร/เครื่องดื่ม"] > 0 ? daySums["อาหาร/เครื่องดื่ม"] : "-",
-                    daySums["การเดินทาง"] > 0 ? daySums["การเดินทาง"] : "-",
-                    daySums["ช้อปปิ้ง"] > 0 ? daySums["ช้อปปิ้ง"] : "-",
-                    daySums["บิล & ค่าน้ำค่าไฟ"] > 0 ? daySums["บิล & ค่าน้ำค่าไฟ"] : "-",
-                    daySums["ความบันเทิง"] > 0 ? daySums["ความบันเทิง"] : "-",
-                    daySums["อื่นๆ"] > 0 ? daySums["อื่นๆ"] : "-"
+            if (currentExportFormat === 'xlsx' || currentExportFormat === 'csv') {
+                const dataToExport = filtered.map((t, i) => ({
+                    'ลำดับ': i + 1,
+                    'ประเภท': t.type === 'income' ? 'รายรับ' : 'รายจ่าย',
+                    'หมวดหมู่': t.category,
+                    'จำนวนเงิน (บาท)': t.amount,
+                    'วันที่': t.date,
+                    'บันทึกช่วยจำ': t.note || ''
+                }));
+                const ws = XLSX.utils.json_to_sheet(dataToExport);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Transactions");
+                XLSX.writeFile(wb, `MoneyPod_${selY}_${selM}.${currentExportFormat === 'xlsx' ? 'xlsx' : 'csv'}`);
+            } else if (currentExportFormat === 'pdf') {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                doc.text(`MoneyPod Report - ${selM}/${selY}`, 14, 20);
+                const tableData = filtered.map((t, i) => [
+                    i + 1,
+                    t.type === 'income' ? 'รายรับ' : 'รายจ่าย',
+                    t.category,
+                    t.amount.toLocaleString(),
+                    t.date,
+                    t.note || '-'
                 ]);
+                doc.autoTable({
+                    startY: 30,
+                    head: [['No.', 'Type', 'Category', 'Amount', 'Date', 'Note']],
+                    body: tableData,
+                });
+                doc.save(`MoneyPod_${selY}_${selM}.pdf`);
             }
-
-            rowsData.push([
-                "Summary",
-                sums["เงินเดือน/รายรับ"],
-                sums["อาหาร/เครื่องดื่ม"],
-                sums["การเดินทาง"],
-                sums["ช้อปปิ้ง"],
-                sums["บิล & ค่าน้ำค่าไฟ"],
-                sums["ความบันเทิง"],
-                sums["อื่นๆ"]
-            ]);
-
-            const totalIncomeSum = sums["เงินเดือน/รายรับ"];
-            const totalExpenseSum = sums["อาหาร/เครื่องดื่ม"] + sums["การเดินทาง"] + sums["ช้อปปิ้ง"] + sums["บิล & ค่าน้ำค่าไฟ"] + sums["ความบันเทิง"] + sums["อื่นๆ"];
-            const netBalance = totalIncomeSum - totalExpenseSum;
-
-            rowsData.push(["Summary รายรับทั้งหมด", totalIncomeSum, "", "", "", "", "", ""]);
-            rowsData.push(["Summary รายจ่ายทั้งหมด", totalExpenseSum, "", "", "", "", "", ""]);
-            rowsData.push(["คงเหลือ", netBalance, "", "", "", "", "", ""]);
-
-            const ws = XLSX.utils.aoa_to_sheet(rowsData);
-            ws['!cols'] = [
-                {wch: 15}, {wch: 18}, {wch: 18}, {wch: 15}, {wch: 15}, {wch: 20}, {wch: 15}, {wch: 15}
-            ];
-
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "MonthlyReport");
-            XLSX.writeFile(wb, `MoneyPod_Report_${year}_${month}.xlsx`);
-        }
-
-        function exportCSV() {
-            const monthTxs = getTransactionsBySelectedMonth();
-            let csv = '\uFEFFID,Type,Amount,Category,WalletId,Date,Note\n';
-            monthTxs.forEach(t => {
-                csv += `"${t.id}","${t.type}",${t.amount},"${t.category}","${t.walletId}","${t.date}","${t.note || ''}"\n`;
-            });
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `MoneyPod_Export.csv`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        function exportPDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            const monthTxs = getTransactionsBySelectedMonth();
-            
-            doc.text("MoneyPod Cute - Transaction Report", 14, 20);
-            const tableData = monthTxs.map((t, idx) => [idx + 1, t.date, t.category, t.type, t.amount, t.note || '-']);
-            
-            doc.autoTable({
-                startY: 25,
-                head: [['#', 'Date', 'Category', 'Type', 'Amount', 'Note']],
-                body: tableData,
-            });
-            doc.save('MoneyPod_Report.pdf');
+            closeModal('exportModal');
         }
     </script>
 </body>
