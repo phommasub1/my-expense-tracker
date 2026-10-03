@@ -218,7 +218,7 @@
             </div>
         </div>
         <div class="flex items-center space-x-2">
-            <!-- ปุ่ม Refresh สำหรับ clear data และดึงข้อมูลใหม่จาก Google Drive (ตามข้อ 1) -->
+            <!-- ปุ่ม Refresh สำหรับ clear data และดึงข้อมูลใหม่จาก Google Drive -->
             <button onclick="refreshAppDataFromDrive()" class="p-2.5 rounded-xl bg-themeCard border border-themeBorder text-amber-600 shadow-sm" title="รีเฟรชข้อมูลล่าสุดจาก Google Drive">
                 <i class="fa-solid fa-rotate"></i>
             </button>
@@ -318,8 +318,11 @@
                     <h2 class="text-lg font-bold text-themeText">กระเป๋าเงิน & การโอน</h2>
                     <p class="text-xs text-themeMuted">บริหารสินทรัพย์และตรวจสอบยอดเงินในบัญชี</p>
                 </div>
+                <!-- เพิ่มปุ่มสำหรับเพิ่มกระเป๋าเงินใหม่ -->
+                <button onclick="openModal('addWalletModal')" class="px-2.5 py-1.5 rounded-xl bg-amber-500/20 text-amber-600 border border-amber-500/30 text-xs font-medium shadow-sm">
+                    + เพิ่มกระเป๋า
+                </button>
             </div>
-            <!-- ตัดปุ่มเพิ่มบัญชีออก เพื่อไม่ให้แก้ไขหรือลบกระเป๋าได้ (ตามข้อ 2) -->
             <div id="fullWalletGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
         </section>
 
@@ -675,6 +678,33 @@
         </div>
     </div>
 
+    <!-- Add Wallet Modal (เพิ่มเข้ามาใหม่เพื่อให้สามารถเพิ่ม/จัดการกระเป๋าได้) -->
+    <div id="addWalletModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-themeCard w-full max-w-sm rounded-3xl p-5 border border-themeBorder space-y-4">
+            <div class="flex justify-between items-center pb-2 border-b border-themeBorder">
+                <h3 class="text-sm font-bold text-themeText flex items-center gap-2">
+                    <i class="fa-solid fa-wallet text-amber-600"></i> เพิ่มกระเป๋าเงินใหม่
+                </h3>
+                <button onclick="closeModal('addWalletModal')" class="text-themeMuted hover:text-themeText">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="text-[11px] text-themeMuted block mb-1">ชื่อกระเป๋า / บัญชี</label>
+                    <input type="text" id="newWalletName" placeholder="เช่น บัญชีออมทรัพย์, บัตรเครดิต" class="w-full bg-themeSub border border-themeBorder rounded-xl px-3 py-2 text-xs text-themeText focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-[11px] text-themeMuted block mb-1">ยอดเงินเริ่มต้น</label>
+                    <input type="number" id="newWalletBalance" placeholder="0.00" class="w-full bg-themeSub border border-themeBorder rounded-xl px-3 py-2 text-xs text-themeText focus:outline-none">
+                </div>
+                <button onclick="saveNewWallet()" class="w-full py-2.5 rounded-xl bg-amber-600 text-white text-xs font-bold hover:opacity-90 transition">
+                    บันทึกกระเป๋าเงิน
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Add Debt Modal -->
     <div id="addDebtModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
         <div class="bg-themeCard w-full max-w-sm rounded-3xl p-5 border border-themeBorder space-y-4">
@@ -928,7 +958,7 @@
             if (googleAccessToken) syncFromGoogleDrive(true);
         });
 
-        // ฟังก์ชัน Refresh สำหรับ Clear ข้อมูลทั้งหมดในเครื่องและดึงข้อมูลปัจจุบันที่สุดจาก Google Drive (ตามข้อ 1)
+        // ฟังก์ชัน Refresh สำหรับ Clear ข้อมูลทั้งหมดในเครื่องและดึงข้อมูลปัจจุบันที่สุดจาก Google Drive
         async function refreshAppDataFromDrive() {
             if (!googleAccessToken) {
                 alert('กรุณาเชื่อมต่อ Google Drive ก่อนใช้งานปุ่มรีเฟรช');
@@ -938,13 +968,11 @@
                 return;
             }
             try {
-                // Clear Local Storage ข้อมูลหลัก
                 localStorage.removeItem('MP_WALLETS');
                 localStorage.removeItem('MP_TXS');
                 localStorage.removeItem('MP_DEBTS');
                 localStorage.removeItem('MP_BUDGET');
 
-                // ดึงข้อมูลใหม่จาก Google Drive
                 await syncFromGoogleDrive(false);
             } catch (err) {
                 alert('เกิดข้อผิดพลาดในการรีเฟรชข้อมูลจาก Google Drive');
@@ -1324,15 +1352,7 @@
             }
         }
 
-        function renderWalletCarousel() {
-            renderDashboard();
-        }
-
-        function renderWallets() {
-            renderWalletsTab();
-        }
-
-        // หน้ากระเป๋าเงิน แสดงข้อมูลตามที่มีแต่ไม่อนุญาตให้เพิ่ม/ลบ/แก้ไข (ตามข้อ 2)
+        // หน้ากระเป๋าเงิน รองรับการแก้ไขจำนวนเงินและการกดลบกระเป๋าได้
         function renderWalletsTab() {
             let grid = document.getElementById('fullWalletGrid');
             if (!grid) return;
@@ -1349,9 +1369,56 @@
                                 <p class="text-sm font-bold text-amber-600 balance-text">฿${w.balance.toLocaleString()}</p>
                             </div>
                         </div>
+                        <div class="flex items-center space-x-1">
+                            <button onclick="editWalletBalance('${w.id}')" class="p-2 rounded-xl bg-themeSub text-amber-600 hover:bg-amber-500/20 transition text-xs" title="แก้ไขยอดเงิน">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button onclick="deleteWallet('${w.id}')" class="p-2 rounded-xl bg-themeSub text-rose-500 hover:bg-rose-500/20 transition text-xs" title="ลบกระเป๋า">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
                     </div>
                 `;
             });
+        }
+
+        function saveNewWallet() {
+            let name = document.getElementById('newWalletName').value.trim();
+            let balance = parseFloat(document.getElementById('newWalletBalance').value) || 0;
+            if (!name) {
+                alert('กรุณาระบุชื่อกระเป๋าเงิน');
+                return;
+            }
+            wallets.push({ id: 'w_' + Date.now(), name, balance, icon: 'fa-wallet' });
+            saveLocalAndAutoSync();
+            closeModal('addWalletModal');
+            document.getElementById('newWalletName').value = '';
+            document.getElementById('newWalletBalance').value = '';
+        }
+
+        function editWalletBalance(id) {
+            let w = wallets.find(item => item.id === id);
+            if (!w) return;
+            let newAmt = prompt(`แก้ไขยอดเงินสำหรับกระเป๋า "${w.name}":`, w.balance);
+            if (newAmt !== null) {
+                let parsed = parseFloat(newAmt);
+                if (!isNaN(parsed)) {
+                    w.balance = parsed;
+                    saveLocalAndAutoSync();
+                } else {
+                    alert('กรุณาระบุตัวเลขที่ถูกต้อง');
+                }
+            }
+        }
+
+        function deleteWallet(id) {
+            if (wallets.length <= 1) {
+                alert('ต้องมีกระเป๋าเงินอย่างน้อย 1 กระเป๋าในระบบ');
+                return;
+            }
+            if (!confirm('คุณต้องการลบกระเป๋าเงินนี้ใช่หรือไม่?')) return;
+            wallets = wallets.filter(w => w.id !== id);
+            saveLocalAndAutoSync();
         }
 
         function renderDebts() {
@@ -1907,169 +1974,6 @@
 
             document.getElementById('taxPositionStatus').innerText = `ขั้นสูงสุด ${maxBracketRate}%`;
             document.getElementById('taxBracketProgressBar').style.width = `${Math.min(100, (netIncome / 5000000) * 100)}%`;
-            document.getElementById('taxNextStepAdvice').innerText = netIncome <= 150000 ? 'เงินได้สุทธิอยู่ในเกณฑ์ได้รับการยกเว้นภาษี' : 'สามารถซื้อกองทุน SSF/RMF เพิ่มเติมเพื่อลดหย่อนภาษีได้';
-        }
-
-        function switchBackupTab(tab) {
-            const btnB = document.getElementById('btnTabBackup');
-            const btnR = document.getElementById('btnTabRestore');
-            const tabB = document.getElementById('backupTabContent');
-            const tabR = document.getElementById('restoreTabContent');
-            if (tab === 'backup') {
-                btnB.className = 'py-2 rounded-xl text-xs font-semibold bg-amber-600 text-white transition z-10';
-                btnR.className = 'py-2 rounded-xl text-xs font-semibold text-themeMuted transition z-10';
-                tabB.classList.remove('hidden');
-                tabR.classList.add('hidden');
-            } else {
-                btnR.className = 'py-2 rounded-xl text-xs font-semibold bg-amber-600 text-white transition z-10';
-                btnB.className = 'py-2 rounded-xl text-xs font-semibold text-themeMuted transition z-10';
-                tabR.classList.remove('hidden');
-                tabB.classList.add('hidden');
-            }
-        }
-
-        function importJSON(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    if (data.wallets) localStorage.setItem('MP_WALLETS', JSON.stringify(data.wallets));
-                    if (data.transactions) localStorage.setItem('MP_TXS', JSON.stringify(data.transactions));
-                    if (data.debts) localStorage.setItem('MP_DEBTS', JSON.stringify(data.debts));
-                    if (data.monthlyBudget) localStorage.setItem('MP_BUDGET', data.monthlyBudget);
-                    if (data.pin) localStorage.setItem('MP_PIN', data.pin);
-                    loadAllData();
-                    alert('กู้คืนข้อมูลสำเร็จ!');
-                    closeModal('backupRestoreModal');
-                } catch (err) {
-                    alert('ไฟล์สำรองไม่ถูกต้อง');
-                }
-            };
-            reader.readAsText(file);
-        }
-
-        function setExportFormat(fmt) {
-            currentExportFormat = fmt;
-            const btnX = document.getElementById('btnFormatXlsx');
-            const btnC = document.getElementById('btnFormatCsv');
-            const btnP = document.getElementById('btnFormatPdf');
-            const submitBtn = document.getElementById('exportSubmitBtn');
-
-            [btnX, btnC, btnP].forEach(b => {
-                b.className = 'py-2 rounded-xl text-xs font-semibold text-themeMuted transition';
-            });
-
-            if (fmt === 'xlsx') {
-                btnX.className = 'py-2 rounded-xl text-xs font-semibold bg-amber-500 text-amber-950 shadow-sm transition';
-                submitBtn.innerText = 'ส่งออก Excel';
-            } else if (fmt === 'csv') {
-                btnC.className = 'py-2 rounded-xl text-xs font-semibold bg-amber-500 text-amber-950 shadow-sm transition';
-                submitBtn.innerText = 'ส่งออก CSV';
-            } else {
-                btnP.className = 'py-2 rounded-xl text-xs font-semibold bg-amber-500 text-amber-950 shadow-sm transition';
-                submitBtn.innerText = 'ส่งออก PDF';
-            }
-            updateExportPreview();
-        }
-
-        function updateExportPreview() {
-            const picker = document.getElementById('exportMonthPicker');
-            if (!picker || !picker.value) return;
-            const [selY, selM] = picker.value.split('-');
-
-            const filtered = transactions.filter(t => t.date && t.date.startsWith(`${selY}-${selM}`));
-            document.getElementById('exportTotalCount').innerText = `${filtered.length} รายการ`;
-            document.getElementById('exportDateRange').innerText = `${selM}/${selY}`;
-
-            let totalExp = 0;
-            filtered.forEach(t => {
-                if (t.type === 'expense') totalExp += t.amount;
-            });
-            document.getElementById('exportTotalExpense').innerText = `฿${totalExp.toLocaleString()}`;
-
-            const tbody = document.getElementById('exportPreviewTableBody');
-            if (tbody) {
-                tbody.innerHTML = '';
-                const previewItems = filtered.slice(0, 3);
-                if (previewItems.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="6" class="p-2 text-center text-themeMuted">ไม่มีข้อมูลในเดือนนี้</td></tr>`;
-                } else {
-                    previewItems.forEach((t, index) => {
-                        tbody.innerHTML += `
-                            <tr>
-                                <td class="p-1.5">${index + 1}</td>
-                                <td class="p-1.5 truncate max-w-[80px]">${t.note || t.category}</td>
-                                <td class="p-1.5">${t.category}</td>
-                                <td class="p-1.5">${t.type === 'income' ? 'รายรับ' : 'รายจ่าย'}</td>
-                                <td class="p-1.5 font-bold">฿${t.amount.toLocaleString()}</td>
-                                <td class="p-1.5">${t.date}</td>
-                            </tr>
-                        `;
-                    });
-                }
-            }
-        }
-
-        function execExport() {
-            const picker = document.getElementById('exportMonthPicker');
-            if (!picker || !picker.value) return;
-            const [selY, selM] = picker.value.split('-');
-            const filtered = transactions.filter(t => t.date && t.date.startsWith(`${selY}-${selM}`));
-
-            if (filtered.length === 0) {
-                alert('ไม่มีข้อมูลสำหรับส่งออกในเดือนนี้');
-                return;
-            }
-
-            if (currentExportFormat === 'xlsx') {
-                const dataToExport = filtered.map((t, idx) => ({
-                    'ลำดับ': idx + 1,
-                    'วันที่': t.date,
-                    'ประเภท': t.type === 'income' ? 'รายรับ' : 'รายจ่าย',
-                    'หมวดหมู่': t.category,
-                    'จำนวนเงิน': t.amount,
-                    'บันทึกช่วยจำ': t.note || '-'
-                }));
-                const ws = XLSX.utils.json_to_sheet(dataToExport);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Transactions");
-                XLSX.writeFile(wb, `MoneyPod_${selY}_${selM}.xlsx`);
-                closeModal('exportModal');
-            } else if (currentExportFormat === 'csv') {
-                let csvContent = "\uFEFFลำดับ,วันที่,ประเภท,หมวดหมู่,จำนวนเงิน,บันทึกช่วยจำ\n";
-                filtered.forEach((t, idx) => {
-                    csvContent += `${idx + 1},${t.date},${t.type === 'income' ? 'รายรับ' : 'รายจ่าย'},${t.category},${t.amount},"${t.note || '-'}"\n`;
-                });
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `MoneyPod_${selY}_${selM}.csv`;
-                a.click();
-                URL.revokeObjectURL(url);
-                closeModal('exportModal');
-            } else if (currentExportFormat === 'pdf') {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
-                doc.text(`MoneyPod Report (${selM}/${selY})`, 14, 15);
-                const tableData = filtered.map((t, idx) => [
-                    idx + 1,
-                    t.date,
-                    t.type === 'income' ? 'รายรับ' : 'รายจ่าย',
-                    t.category,
-                    t.amount.toLocaleString(),
-                    t.note || '-'
-                ]);
-                doc.autoTable({
-                    head: [['No.', 'Date', 'Type', 'Category', 'Amount', 'Note']],
-                    body: tableData,
-                    startY: 20
-                });
-                doc.save(`MoneyPod_${selY}_${selM}.pdf`);
-                closeModal('exportModal');
-            }
         }
     </script>
 </body>
