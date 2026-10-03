@@ -218,6 +218,10 @@
             </div>
         </div>
         <div class="flex items-center space-x-2">
+            <!-- ปุ่ม Refresh สำหรับ clear data และดึงข้อมูลใหม่จาก Google Drive (ตามข้อ 1) -->
+            <button onclick="refreshAppDataFromDrive()" class="p-2.5 rounded-xl bg-themeCard border border-themeBorder text-amber-600 shadow-sm" title="รีเฟรชข้อมูลล่าสุดจาก Google Drive">
+                <i class="fa-solid fa-rotate"></i>
+            </button>
             <button onclick="handleGoogleAuth()" id="googleAuthBtn" class="p-2.5 rounded-xl bg-themeCard border border-themeBorder text-amber-600 text-xs font-medium shadow-sm">
                 <i class="fa-brands fa-google text-sm"></i> 
                 <span id="googleBtnText" class="hidden sm:inline">เชื่อมต่อ Google</span>
@@ -290,7 +294,7 @@
                         <i class="fa-solid fa-wallet text-amber-600"></i> กระเป๋าเงินของคุณ
                     </h3>
                     <button onclick="switchTab('wallets')" class="text-[11px] text-amber-600 hover:underline">
-                        จัดการกระเป๋า <i class="fa-solid fa-chevron-right text-[9px]"></i>
+                        ดูรายละเอียด <i class="fa-solid fa-chevron-right text-[9px]"></i>
                     </button>
                 </div>
                 <div id="walletCarousel" class="flex space-x-3 overflow-x-auto no-scrollbar pb-1 pt-1"></div>
@@ -312,12 +316,10 @@
             <div class="flex justify-between items-center">
                 <div>
                     <h2 class="text-lg font-bold text-themeText">กระเป๋าเงิน & การโอน</h2>
-                    <p class="text-xs text-themeMuted">บริหารสินทรัพย์ ปรับยอด และโยกย้ายเงินข้ามบัญชี</p>
+                    <p class="text-xs text-themeMuted">บริหารสินทรัพย์และตรวจสอบยอดเงินในบัญชี</p>
                 </div>
-                <button onclick="openModal('addWalletModal')" class="px-3 py-2 rounded-xl bg-amber-500/20 text-amber-600 border border-amber-500/40 text-xs font-medium shadow-sm">
-                    <i class="fa-solid fa-plus"></i> เพิ่มบัญชี
-                </button>
             </div>
+            <!-- ตัดปุ่มเพิ่มบัญชีออก เพื่อไม่ให้แก้ไขหรือลบกระเป๋าได้ (ตามข้อ 2) -->
             <div id="fullWalletGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
         </section>
 
@@ -673,34 +675,6 @@
         </div>
     </div>
 
-    <!-- Add/Edit Wallet Modal -->
-    <div id="addWalletModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-        <div class="bg-themeCard w-full max-w-sm rounded-3xl p-5 border border-themeBorder space-y-4">
-            <div class="flex justify-between items-center pb-2 border-b border-themeBorder">
-                <h3 id="walletModalTitle" class="text-sm font-bold text-themeText flex items-center gap-2">
-                    <i class="fa-solid fa-wallet text-amber-600"></i> เพิ่มกระเป๋าเงินใหม่
-                </h3>
-                <button onclick="closeModal('addWalletModal')" class="text-themeMuted hover:text-themeText">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-            <input type="hidden" id="editWalletId">
-            <div class="space-y-3">
-                <div>
-                    <label class="text-[11px] text-themeMuted block mb-1">ชื่อกระเป๋า</label>
-                    <input type="text" id="newWalletName" placeholder="เช่น บัญชีออมทรัพย์" class="w-full bg-themeSub border border-themeBorder rounded-xl px-3 py-2 text-xs text-themeText focus:outline-none">
-                </div>
-                <div>
-                    <label class="text-[11px] text-themeMuted block mb-1">ยอดเงินเริ่มต้น</label>
-                    <input type="number" id="newWalletBalance" placeholder="0.00" class="w-full bg-themeSub border border-themeBorder rounded-xl px-3 py-2 text-xs text-themeText focus:outline-none">
-                </div>
-                <button onclick="saveNewWallet()" class="w-full py-2.5 rounded-xl bg-amber-600 text-white text-xs font-bold hover:opacity-90 transition">
-                    บันทึกกระเป๋า
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- Add Debt Modal -->
     <div id="addDebtModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
         <div class="bg-themeCard w-full max-w-sm rounded-3xl p-5 border border-themeBorder space-y-4">
@@ -953,6 +927,29 @@
 
             if (googleAccessToken) syncFromGoogleDrive(true);
         });
+
+        // ฟังก์ชัน Refresh สำหรับ Clear ข้อมูลทั้งหมดในเครื่องและดึงข้อมูลปัจจุบันที่สุดจาก Google Drive (ตามข้อ 1)
+        async function refreshAppDataFromDrive() {
+            if (!googleAccessToken) {
+                alert('กรุณาเชื่อมต่อ Google Drive ก่อนใช้งานปุ่มรีเฟรช');
+                return;
+            }
+            if (!confirm('การรีเฟรชจะล้างข้อมูลเก่าในเครื่องและดึงข้อมูลล่าสุดจาก Google Drive มาแสดง คุณต้องการดำเนินการต่อหรือไม่?')) {
+                return;
+            }
+            try {
+                // Clear Local Storage ข้อมูลหลัก
+                localStorage.removeItem('MP_WALLETS');
+                localStorage.removeItem('MP_TXS');
+                localStorage.removeItem('MP_DEBTS');
+                localStorage.removeItem('MP_BUDGET');
+
+                // ดึงข้อมูลใหม่จาก Google Drive
+                await syncFromGoogleDrive(false);
+            } catch (err) {
+                alert('เกิดข้อผิดพลาดในการรีเฟรชข้อมูลจาก Google Drive');
+            }
+        }
 
         function populateSelects() {
             const wSelect = document.getElementById('txWalletSelect');
@@ -1335,6 +1332,7 @@
             renderWalletsTab();
         }
 
+        // หน้ากระเป๋าเงิน แสดงข้อมูลตามที่มีแต่ไม่อนุญาตให้เพิ่ม/ลบ/แก้ไข (ตามข้อ 2)
         function renderWalletsTab() {
             let grid = document.getElementById('fullWalletGrid');
             if (!grid) return;
@@ -1473,20 +1471,6 @@
                 transactions.splice(idx, 1);
                 saveLocalAndAutoSync();
             }
-        }
-
-        function saveNewWallet() {
-            let name = document.getElementById('newWalletName').value;
-            let balance = parseFloat(document.getElementById('newWalletBalance').value) || 0;
-            if (!name) {
-                alert('กรุณาระบุชื่อกระเป๋า');
-                return;
-            }
-            wallets.push({ id: 'w_' + Date.now(), name: name, balance: balance, icon: 'fa-wallet' });
-            saveLocalAndAutoSync();
-            closeModal('addWalletModal');
-            document.getElementById('newWalletName').value = '';
-            document.getElementById('newWalletBalance').value = '';
         }
 
         function saveNewDebt() {
@@ -2046,35 +2030,37 @@
                     'ประเภท': t.type === 'income' ? 'รายรับ' : 'รายจ่าย',
                     'หมวดหมู่': t.category,
                     'จำนวนเงิน': t.amount,
-                    'บันทึกช่วยจำ': t.note || ''
+                    'บันทึกช่วยจำ': t.note || '-'
                 }));
                 const ws = XLSX.utils.json_to_sheet(dataToExport);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Transactions");
                 XLSX.writeFile(wb, `MoneyPod_${selY}_${selM}.xlsx`);
+                closeModal('exportModal');
             } else if (currentExportFormat === 'csv') {
-                let csvContent = "data:text/csv;charset=utf-8,\uFEFFลำดับ,วันที่,ประเภท,หมวดหมู่,จำนวนเงิน,บันทึก\n";
+                let csvContent = "\uFEFFลำดับ,วันที่,ประเภท,หมวดหมู่,จำนวนเงิน,บันทึกช่วยจำ\n";
                 filtered.forEach((t, idx) => {
-                    csvContent += `${idx + 1},${t.date},${t.type === 'income' ? 'รายรับ' : 'รายจ่าย'},${t.category},${t.amount},"${t.note || ''}"\n`;
+                    csvContent += `${idx + 1},${t.date},${t.type === 'income' ? 'รายรับ' : 'รายจ่าย'},${t.category},${t.amount},"${t.note || '-'}"\n`;
                 });
-                const encodedUri = encodeURI(csvContent);
-                const link = document.createElement("a");
-                link.setAttribute("href", encodedUri);
-                link.setAttribute("download", `MoneyPod_${selY}_${selM}.csv`);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `MoneyPod_${selY}_${selM}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+                closeModal('exportModal');
             } else if (currentExportFormat === 'pdf') {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
-                doc.text(`MoneyPod Report - ${selM}/${selY}`, 14, 15);
+                doc.text(`MoneyPod Report (${selM}/${selY})`, 14, 15);
                 const tableData = filtered.map((t, idx) => [
                     idx + 1,
                     t.date,
                     t.type === 'income' ? 'รายรับ' : 'รายจ่าย',
                     t.category,
                     t.amount.toLocaleString(),
-                    t.note || ''
+                    t.note || '-'
                 ]);
                 doc.autoTable({
                     head: [['No.', 'Date', 'Type', 'Category', 'Amount', 'Note']],
@@ -2082,9 +2068,10 @@
                     startY: 20
                 });
                 doc.save(`MoneyPod_${selY}_${selM}.pdf`);
+                closeModal('exportModal');
             }
-            closeModal('exportModal');
         }
     </script>
 </body>
 </html>
+```[cite: 1]
