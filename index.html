@@ -455,7 +455,7 @@
     </nav>
 
     <!-- MODALS SECTION -->
-    <!-- Summary Report Modal -->
+    <!-- Summary Report Modal (NEW) -->
     <div id="summaryReportModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
         <div class="bg-themeCard w-full max-w-2xl rounded-3xl p-5 border border-themeBorder space-y-5 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center pb-3 border-b border-themeBorder">
@@ -766,7 +766,7 @@
         </div>
     </div>
 
-    <!-- Day Details Modal -->
+    <!-- Day Details Modal (For Calendar Cell Click) -->
     <div id="dayDetailsModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
         <div class="bg-themeCard w-full max-w-md rounded-3xl p-5 border border-themeBorder space-y-4 max-h-[80vh] overflow-y-auto">
             <div class="flex justify-between items-center pb-2 border-b border-themeBorder">
@@ -797,9 +797,11 @@
                 <button onclick="switchBackupTab('restore')" id="btnTabRestore" class="py-2 rounded-xl text-xs font-semibold text-themeMuted transition z-10">กู้คืนข้อมูล</button>
             </div>
             <div id="backupTabContent" class="space-y-3">
+                <!-- 1. Save file locally -->
                 <button onclick="downloadLocalBackup()" class="w-full py-3 rounded-2xl bg-themeSub border border-themeBorder text-amber-600 text-xs font-bold hover:bg-amber-500/10 transition flex items-center justify-center gap-2 shadow-sm">
                     <i class="fa-solid fa-download"></i> ดาวน์โหลดไฟล์สำรองเก็บไว้ในเครื่อง (.json)
                 </button>
+                <!-- 2. Save file to Google Drive -->
                 <button onclick="backupToGoogleDrive(false)" class="w-full py-3 rounded-2xl bg-amber-600 text-white text-xs font-bold hover:opacity-95 transition flex items-center justify-center gap-2 shadow-sm">
                     <i class="fa-brands fa-google"></i> สำรองข้อมูลขึ้น Google Drive
                 </button>
@@ -841,7 +843,7 @@
             </div>
             
             <div class="space-y-2 bg-themeSub/50 p-3 rounded-2xl">
-                <label class="text-[11px] text-themeMuted block font-semibold">เลือกเดือน/ปีสำหรับการส่งออกข้อมูล</label>
+                <label class="text-[11px] text-themeMuted block font-semibold">เลือกเดือน/ปีสำหรับการส่งออก Excel</label>
                 <input type="month" id="exportMonthPicker" onchange="updateExportPreview()" class="w-full bg-themeCard border border-themeBorder rounded-xl px-3 py-2 text-xs text-amber-600 focus:outline-none font-semibold">
             </div>
 
@@ -1761,9 +1763,8 @@
                 calculatedTax += (5000000 - 2000000) * 0.30;
                 calculatedTax += (2000000 - 1000000) * 0.25;
                 calculatedTax += (1000000 - 750050) * 0.20;
-                calculatedTax += (750050 - 500000) * 0.15;
+                calculatedTax += (750000 - 500000) * 0.15;
                 calculatedTax += (500000 - 300000) * 0.10;
-                calculatedTax += (300000 - 150000) * 0.05;
                 bracketStr = '35% (มากกว่า 5,000,000)';
                 maxBracketRate = 35;
             } else if (netIncome > 2000000) {
@@ -1772,7 +1773,6 @@
                 calculatedTax += (1000000 - 750000) * 0.20;
                 calculatedTax += (750000 - 500000) * 0.15;
                 calculatedTax += (500000 - 300000) * 0.10;
-                calculatedTax += (300000 - 150000) * 0.05;
                 bracketStr = '30% (2,000,001 - 5,000,000)';
                 maxBracketRate = 30;
             } else if (netIncome > 1000000) {
@@ -1780,25 +1780,21 @@
                 calculatedTax += (1000000 - 750000) * 0.20;
                 calculatedTax += (750000 - 500000) * 0.15;
                 calculatedTax += (500000 - 300000) * 0.10;
-                calculatedTax += (300000 - 150000) * 0.05;
                 bracketStr = '25% (1,000,001 - 2,000,000)';
                 maxBracketRate = 25;
             } else if (netIncome > 750000) {
                 calculatedTax += (netIncome - 750000) * 0.20;
                 calculatedTax += (750000 - 500000) * 0.15;
                 calculatedTax += (500000 - 300000) * 0.10;
-                calculatedTax += (300000 - 150000) * 0.05;
                 bracketStr = '20% (750,001 - 1,000,000)';
                 maxBracketRate = 20;
             } else if (netIncome > 500000) {
                 calculatedTax += (netIncome - 500000) * 0.15;
                 calculatedTax += (500000 - 300000) * 0.10;
-                calculatedTax += (300000 - 150000) * 0.05;
                 bracketStr = '15% (500,001 - 750,000)';
                 maxBracketRate = 15;
             } else if (netIncome > 300000) {
                 calculatedTax += (netIncome - 300000) * 0.10;
-                calculatedTax += (300000 - 150000) * 0.05;
                 bracketStr = '10% (300,001 - 500,000)';
                 maxBracketRate = 10;
             } else if (netIncome > 150000) {
@@ -1848,65 +1844,52 @@
             }
         }
 
-        function importJSON(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                try {
-                    const data = JSON.parse(evt.target.result);
-                    if (data.wallets) localStorage.setItem('MP_WALLETS', JSON.stringify(data.wallets));
-                    if (data.transactions) localStorage.setItem('MP_TXS', JSON.stringify(data.transactions));
-                    if (data.debts) localStorage.setItem('MP_DEBTS', JSON.stringify(data.debts));
-                    if (data.monthlyBudget) localStorage.setItem('MP_BUDGET', data.monthlyBudget);
-                    if (data.pin) localStorage.setItem('MP_PIN', data.pin);
-                    loadAllData();
-                    alert('กู้คืนข้อมูลสำเร็จ!');
-                    closeModal('backupRestoreModal');
-                } catch (err) {
-                    alert('ไฟล์ JSON ไม่ถูกต้อง');
-                }
-            };
-            reader.readAsText(file);
-        }
-
         function setExportFormat(fmt) {
             currentExportFormat = fmt;
-            document.getElementById('btnFormatXlsx').className = fmt === 'xlsx' ? 'py-2 rounded-xl text-xs font-semibold bg-amber-500 text-amber-950 shadow-sm transition' : 'py-2 rounded-xl text-xs font-semibold text-themeMuted transition';
-            document.getElementById('btnFormatCsv').className = fmt === 'csv' ? 'py-2 rounded-xl text-xs font-semibold bg-amber-500 text-amber-950 shadow-sm transition' : 'py-2 rounded-xl text-xs font-semibold text-themeMuted transition';
-            document.getElementById('btnFormatPdf').className = fmt === 'pdf' ? 'py-2 rounded-xl text-xs font-semibold bg-amber-500 text-amber-950 shadow-sm transition' : 'py-2 rounded-xl text-xs font-semibold text-themeMuted transition';
-            document.getElementById('exportSubmitBtn').innerText = `ส่งออก ${fmt.toUpperCase()}`;
-            updateExportPreview();
+            ['xlsx', 'csv', 'pdf'].forEach(f => {
+                const b = document.getElementById(`btnFormat${f.charAt(0).toUpperCase() + f.slice(1)}`);
+                if (b) {
+                    if (f === fmt) {
+                        b.className = 'py-2 rounded-xl text-xs font-semibold bg-amber-500 text-amber-950 shadow-sm transition';
+                    } else {
+                        b.className = 'py-2 rounded-xl text-xs font-semibold text-themeMuted transition';
+                    }
+                }
+            });
+            const submitBtn = document.getElementById('exportSubmitBtn');
+            if (submitBtn) submitBtn.innerText = `ส่งออก ${fmt.toUpperCase()}`;
         }
 
         function updateExportPreview() {
             const picker = document.getElementById('exportMonthPicker');
             if (!picker || !picker.value) return;
-            const [selY, selM] = picker.value.split('-');
+            const [y, m] = picker.value.split('-');
+            const filtered = transactions.filter(t => t.date && t.date.startsWith(`${y}-${m}`));
 
-            const filtered = transactions.filter(t => t.date && t.date.startsWith(`${selY}-${selM}`));
             document.getElementById('exportTotalCount').innerText = `${filtered.length} รายการ`;
-            document.getElementById('exportDateRange').innerText = `${selM}/${selY}`;
+            document.getElementById('exportDateRange').innerText = `${m}/${y}`;
 
             let totalExp = 0;
-            filtered.forEach(t => { if (t.type === 'expense') totalExp += t.amount; });
+            filtered.forEach(t => {
+                if (t.type === 'expense') totalExp += t.amount;
+            });
             document.getElementById('exportTotalExpense').innerText = `฿${totalExp.toLocaleString()}`;
 
             const tbody = document.getElementById('exportPreviewTableBody');
             if (tbody) {
                 tbody.innerHTML = '';
-                const previewItems = filtered.slice(0, 3);
-                if (previewItems.length === 0) {
+                const sample = filtered.slice(0, 3);
+                if (sample.length === 0) {
                     tbody.innerHTML = `<tr><td colspan="6" class="p-2 text-center text-themeMuted">ไม่มีข้อมูลในเดือนนี้</td></tr>`;
                 } else {
-                    previewItems.forEach((t, index) => {
+                    sample.forEach((t, i) => {
                         tbody.innerHTML += `
                             <tr>
-                                <td class="p-1.5">${index + 1}</td>
-                                <td class="p-1.5 truncate max-w-[80px]">${t.note || '-'}</td>
-                                <td class="p-1.5">${t.category}</td>
+                                <td class="p-1.5">${i + 1}</td>
+                                <td class="p-1.5 truncate max-w-[90px]">${t.note || t.category}</td>
+                                <td class="p-1.5 truncate max-w-[80px]">${t.category}</td>
                                 <td class="p-1.5">${t.type === 'income' ? 'รายรับ' : 'รายจ่าย'}</td>
-                                <td class="p-1.5 font-bold">฿${t.amount.toLocaleString()}</td>
+                                <td class="p-1.5 font-bold ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-500'}">฿${t.amount.toLocaleString()}</td>
                                 <td class="p-1.5">${t.date}</td>
                             </tr>
                         `;
@@ -1918,45 +1901,59 @@
         function execExport() {
             const picker = document.getElementById('exportMonthPicker');
             if (!picker || !picker.value) return;
-            const [selY, selM] = picker.value.split('-');
-            const filtered = transactions.filter(t => t.date && t.date.startsWith(`${selY}-${selM}`));
+            const [y, m] = picker.value.split('-');
+            const filtered = transactions.filter(t => t.date && t.date.startsWith(`${y}-${m}`));
 
             if (filtered.length === 0) {
-                alert('ไม่มีข้อมูลสำหรับเดือนที่เลือก');
+                alert('ไม่พบข้อมูลในช่วงเวลาที่เลือกสำหรับส่งออก');
                 return;
             }
 
-            if (currentExportFormat === 'xlsx' || currentExportFormat === 'csv') {
-                const dataToExport = filtered.map((t, i) => ({
-                    'ลำดับ': i + 1,
+            if (currentExportFormat === 'xlsx') {
+                let dataToExport = filtered.map((t, idx) => ({
+                    'ลำดับ': idx + 1,
+                    'วันที่': t.date,
                     'ประเภท': t.type === 'income' ? 'รายรับ' : 'รายจ่าย',
                     'หมวดหมู่': t.category,
-                    'จำนวนเงิน (บาท)': t.amount,
-                    'วันที่': t.date,
+                    'จำนวนเงิน': t.amount,
                     'บันทึกช่วยจำ': t.note || ''
                 }));
                 const ws = XLSX.utils.json_to_sheet(dataToExport);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Transactions");
-                XLSX.writeFile(wb, `MoneyPod_${selY}_${selM}.${currentExportFormat === 'xlsx' ? 'xlsx' : 'csv'}`);
+                XLSX.writeFile(wb, `MoneyPod_${y}_${m}.xlsx`);
+            } else if (currentExportFormat === 'csv') {
+                let csvContent = "\uFEFFลำดับ,วันที่,ประเภท,หมวดหมู่,จำนวนเงิน,บันทึกช่วยจำ\n";
+                filtered.forEach((t, idx) => {
+                    csvContent += `${idx + 1},${t.date},${t.type === 'income' ? 'รายรับ' : 'รายจ่าย'},${t.category},${t.amount},"${t.note || ''}"\n`;
+                });
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `MoneyPod_${y}_${m}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
             } else if (currentExportFormat === 'pdf') {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
-                doc.text(`MoneyPod Report - ${selM}/${selY}`, 14, 20);
-                const tableData = filtered.map((t, i) => [
-                    i + 1,
+                doc.text(`MoneyPod Report (${m}/${y})`, 14, 20);
+                
+                let tableData = filtered.map((t, idx) => [
+                    idx + 1,
+                    t.date,
                     t.type === 'income' ? 'รายรับ' : 'รายจ่าย',
                     t.category,
                     t.amount.toLocaleString(),
-                    t.date,
-                    t.note || '-'
+                    t.note || ''
                 ]);
+
                 doc.autoTable({
-                    startY: 30,
-                    head: [['No.', 'Type', 'Category', 'Amount', 'Date', 'Note']],
+                    startY: 25,
+                    head: [['No.', 'Date', 'Type', 'Category', 'Amount', 'Note']],
                     body: tableData,
                 });
-                doc.save(`MoneyPod_${selY}_${selM}.pdf`);
+                doc.save(`MoneyPod_${y}_${m}.pdf`);
             }
             closeModal('exportModal');
         }
